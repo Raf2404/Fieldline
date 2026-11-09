@@ -26,9 +26,9 @@ Supabase Storage pour les photos · Vercel pour l'hébergement.
 |---|---|---|
 | 1-2 | Catalogue public (accueil, catalogue filtrable, fiche produit, FAQ, guide des tailles) + gestion des articles sans code | ✅ fait |
 | 3 | Panier, commande, paiement via WhatsApp, réservation et libération du stock, admin commandes, réglages | ✅ fait |
-| 4 | Numéros de suivi transporteur, e-mails automatiques, page « Suivre ma commande », espace client | à faire |
-| 5 | Tableau de bord complet (chiffre d'affaires, retards), codes promo, actions groupées, export commandes | à faire |
-| 6 | Pages légales (CGV avec les conditions de paiement), contact, nom de domaine, mise en ligne | à faire |
+| 4 | E-mails automatiques, numéros de suivi transporteur, page « Suivre ma commande », espace client, demandes problème / retour | ✅ fait |
+| 5 | Chiffre d'affaires, codes promo, actions groupées, export commandes, textes d'e-mails modifiables, compte associé | à faire |
+| 6 | Pages légales (CGV avec les conditions de paiement), contact, facture PDF, nom de domaine, mise en ligne | à faire |
 
 ### Déjà en place
 - **Site** : pensé téléphone d'abord. Filtres marque / pointure / terrain / prix + tri, disponibilité par pointure
@@ -44,6 +44,13 @@ Supabase Storage pour les photos · Vercel pour l'hébergement.
   (valider le paiement, prolonger 48 h, avancer d'étape, annuler avec remise en stock, rembourser, écrire au client sur WhatsApp,
   notes internes, historique horodaté). Prix et stock toujours relus en base à la commande ; deux clients ne peuvent pas prendre
   la même dernière paire ; 2 commandes non payées maximum par client (anti-blocage du stock).
+- **Suivi et e-mails** : un e-mail aux couleurs de Fieldline à chaque étape (commande réservée avec bouton WhatsApp, payée,
+  commandée, reçue, expédiée avec lien de suivi du transporteur, livrée, annulée, remboursée, retard) + alerte au vendeur
+  à chaque commande et chaque demande client. Tous les e-mails sont visibles et renvoyables depuis la fiche commande.
+  Page de commande client avec frise des étapes datées, date de livraison estimée, colis, message du vendeur,
+  « Signaler un problème » / « Demander un retour ». Page « Suivre ma commande » (numéro + e-mail, sans compte).
+- **Espace client** : connexion sans mot de passe par lien e-mail (usage unique, 30 min), toutes les commandes passées
+  avec cet e-mail, profil qui pré-remplit la commande suivante, suppression du compte (RGPD).
 - **Règles** : un article passe seul en « Rupture de stock » quand toutes ses pointures sont à 0 (sauf « Vente sur commande »).
   Toute modification dans l'admin est visible immédiatement sur le site.
 
@@ -97,8 +104,9 @@ Site : http://localhost:3000 · Admin : http://localhost:3000/admin
    ```
 3. **Vercel** : importe le dépôt GitHub et renseigne les variables de `.env.example` :
    `DATABASE_URL` (transaction pooler), `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-   `SUPABASE_BUCKET=products`, `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`.
-4. **Annulation des commandes non payées** : elle a lieu à chaque nouvelle commande, à chaque ouverture de l'admin,
+   `SUPABASE_BUCKET=products`, `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`.
+4. **E-mails** : crée un compte Resend, vérifie ton nom de domaine, puis renseigne `RESEND_API_KEY` et `EMAIL_FROM` sur Vercel.
+5. **Annulation des commandes non payées** : elle a lieu à chaque nouvelle commande, à chaque ouverture de l'admin,
    et une fois par jour via la tâche planifiée de `vercel.json` (limite du plan gratuit de Vercel). Pour un passage
    toutes les heures, programme un service gratuit (ex. cron-job.org) qui appelle
    `https://ton-site/api/cron/commandes-expirees` avec l'en-tête `Authorization: Bearer <CRON_SECRET>`.
@@ -128,7 +136,9 @@ src/
   lib/catalog.ts       règles métier : statuts, disponibilité, pointures
   lib/queries.ts       lecture du catalogue public (mise en cache, vidée à chaque modification)
   lib/admin-data.ts    lectures de l'admin
-  lib/order-service.ts création des commandes, réservation / libération du stock, expiration
+  lib/order-service.ts création des commandes, réservation / libération du stock, expiration, e-mails de statut
+  lib/email*.ts        envoi (Resend) et modèles d'e-mails
+  lib/customer-auth.ts connexion client par lien e-mail
   lib/orders.ts        statuts, téléphone, lien WhatsApp
   lib/settings.ts      réglages modifiables dans l'admin
   lib/storage.ts       photos : Supabase Storage, ou .data/uploads en local

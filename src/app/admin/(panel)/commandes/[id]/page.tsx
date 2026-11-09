@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { WhatsAppIcon } from "@/components/icons";
 import { Totals } from "@/components/order-summary";
 import { OrderActions, InternalNote } from "@/components/admin/order-actions";
+import { CustomerMessage, DelayNotice, HandleRequest, ResendEmail, ShippingForm } from "@/components/admin/order-tools";
 import { requireAdmin } from "@/lib/auth";
 import { getOrder } from "@/lib/admin-orders";
 import { formatPrice } from "@/lib/money";
-import { ORDER_STATUS, dateFr, formatPhone, orderRef, timeLeft, whatsappLink } from "@/lib/orders";
+import { ORDER_STATUS, dateFr, dayFr, formatPhone, orderRef, timeLeft, whatsappLink } from "@/lib/orders";
 import { SITE } from "@/lib/site";
 import { imageUrl } from "@/lib/storage";
 
@@ -32,6 +33,9 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
         <span className="text-sm text-muted">passée le {dateFr(o.createdAt)}</span>
       </div>
 
+      {o.estimatedDeliveryAt && !["delivered", "cancelled", "refunded"].includes(o.status) && (
+        <p className="text-sm text-muted">Livraison estimée annoncée au client : <b className="text-ink">{dayFr(o.estimatedDeliveryAt)}</b></p>
+      )}
       {o.status === "pending_payment" && o.paymentDueAt && (
         <p className="rounded-xl bg-warn/10 p-3 text-sm text-warn">
           En attente du paiement. Annulation automatique dans <b>{timeLeft(o.paymentDueAt)}</b> ({dateFr(o.paymentDueAt)}) si rien n&apos;est validé.
@@ -70,6 +74,30 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
           </section>
 
           <section className="rounded-2xl bg-white p-5">
+            <h2 className="mb-3 font-semibold">E-mails envoyés au client</h2>
+            {o.emails.length ? (
+              <ul className="divide-y divide-line text-sm">
+                {o.emails.map((m) => (
+                  <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${m.status === "sent" ? "bg-ok/10 text-ok" : m.status === "failed" ? "bg-sale/10 text-sale" : "bg-black/5 text-muted"}`} title={m.error ?? undefined}>
+                      {m.status === "sent" ? "Envoyé" : m.status === "failed" ? "Échec" : "Non envoyé"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{m.subject}</span>
+                    <span className="text-xs text-muted">{m.to === o.email ? "client" : m.to} · {dateFr(m.createdAt)}</span>
+                    <a href={`/admin/emails/${m.id}`} target="_blank" className="text-xs font-medium underline">Voir</a>
+                    <ResendEmail emailId={m.id} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">Aucun e-mail pour l&apos;instant.</p>
+            )}
+            {o.emails.some((m) => m.status === "skipped") && (
+              <p className="mt-2 text-xs text-muted">« Non envoyé » : le service d&apos;e-mails (Resend) n&apos;est pas encore configuré. Le contenu est conservé et visible.</p>
+            )}
+          </section>
+
+          <section className="rounded-2xl bg-white p-5">
             <h2 className="mb-3 font-semibold">Historique</h2>
             <ol className="space-y-3 border-l-2 border-line pl-4 text-sm">
               {o.events.map((e) => (
@@ -84,7 +112,43 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
         </div>
 
         <div className="order-first space-y-4 lg:order-none">
-          <OrderActions orderId={o.id} status={o.status} />
+          <OrderActions
+            orderId={o.id}
+            status={o.status}
+            extra={
+              <>
+                {o.status === "received" && (
+                  <div className="space-y-2 rounded-xl bg-paper p-3">
+                    <p className="text-sm font-semibold">Expédier la commande</p>
+                    <ShippingForm orderId={o.id} mode="ship" />
+                  </div>
+                )}
+                {["paid", "ordered", "received", "shipped"].includes(o.status) && <DelayNotice orderId={o.id} />}
+              </>
+            }
+          />
+
+          {o.trackingNumber && (
+            <section className="space-y-2 rounded-2xl bg-white p-5">
+              <h2 className="font-semibold">Suivi du colis</h2>
+              <ShippingForm orderId={o.id} mode="edit" carrier={o.carrier} trackingNumber={o.trackingNumber} />
+            </section>
+          )}
+
+          {o.requests.length > 0 && (
+            <section className="space-y-3 rounded-2xl bg-white p-5">
+              <h2 className="font-semibold">Demandes du client</h2>
+              {o.requests.map((r) => (
+                <div key={r.id} className={`space-y-2 rounded-xl p-3 text-sm ${r.handledAt ? "bg-paper text-muted" : "bg-warn/10"}`}>
+                  <p className="font-semibold">{r.type === "retour" ? "Demande de retour" : "Problème signalé"} · {dateFr(r.createdAt)}</p>
+                  <p className="whitespace-pre-line">{r.message}</p>
+                  {r.handledAt ? <p className="text-xs">Traitée le {dateFr(r.handledAt)}</p> : <HandleRequest requestId={r.id} />}
+                </div>
+              ))}
+            </section>
+          )}
+
+          <CustomerMessage orderId={o.id} initial={o.customerMessage ?? ""} />
 
           <section className="space-y-2 rounded-2xl bg-white p-5 text-sm">
             <h2 className="font-semibold">Client</h2>

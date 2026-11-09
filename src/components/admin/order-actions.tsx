@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { ORDER_FLOW, ORDER_STATUS, type OrderStatusCode } from "@/lib/orders";
 import { extendOrder, saveInternalNote, setOrderStatus } from "@/app/admin/(panel)/commandes/actions";
 
-export function OrderActions({ orderId, status }: { orderId: string; status: OrderStatusCode }) {
+export function OrderActions({ orderId, status, extra }: { orderId: string; status: OrderStatusCode; extra?: React.ReactNode }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const run = (fn: () => Promise<{ error?: string } | { ok: boolean } | undefined>) =>
@@ -14,7 +14,8 @@ export function OrderActions({ orderId, status }: { orderId: string; status: Ord
     });
 
   const idx = ORDER_FLOW.indexOf(status);
-  const next = idx >= 1 && idx < ORDER_FLOW.length - 1 ? ORDER_FLOW[idx + 1] : null;
+  const nextStep = idx >= 1 && idx < ORDER_FLOW.length - 1 ? ORDER_FLOW[idx + 1] : null;
+  const next = nextStep === "shipped" ? null : nextStep;
   const closed = status === "cancelled" || status === "refunded";
 
   return (
@@ -70,7 +71,8 @@ export function OrderActions({ orderId, status }: { orderId: string; status: Ord
       )}
       {closed && <p className="text-sm text-muted">Commande clôturée.</p>}
       {error && <p className="text-sm text-sale">{error}</p>}
-      <p className="text-xs text-muted">Les e-mails automatiques à chaque étape arrivent avec la phase 4.</p>
+      {extra}
+      <p className="text-xs text-muted">Chaque changement de statut envoie l&apos;e-mail correspondant au client.</p>
     </section>
   );
 }

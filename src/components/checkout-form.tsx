@@ -15,7 +15,7 @@ function F({ label, name, error, className, ...input }: { label: string; name: s
   );
 }
 
-export function CheckoutForm({ summary }: { summary: ReactNode }) {
+export function CheckoutForm({ summary, defaults = {} }: { summary: ReactNode; defaults?: Record<string, string> }) {
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
   const e = state?.errors ?? {};
   return (
@@ -32,19 +32,19 @@ export function CheckoutForm({ summary }: { summary: ReactNode }) {
         <section className="space-y-3 rounded-2xl bg-white p-5">
           <h2 className="font-semibold">Tes coordonnées</h2>
           <div className="grid grid-cols-2 gap-3">
-            <F label="Prénom" name="firstName" autoComplete="given-name" error={e.firstName} />
-            <F label="Nom" name="lastName" autoComplete="family-name" error={e.lastName} />
+            <F label="Prénom" name="firstName" autoComplete="given-name" defaultValue={defaults.firstName} error={e.firstName} />
+            <F label="Nom" name="lastName" autoComplete="family-name" defaultValue={defaults.lastName} error={e.lastName} />
           </div>
-          <F label="E-mail" name="email" type="email" autoComplete="email" inputMode="email" error={e.email} />
-          <F label="Téléphone (WhatsApp de préférence)" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="06 12 34 56 78" error={e.phone} />
+          <F label="E-mail" name="email" type="email" autoComplete="email" inputMode="email" defaultValue={defaults.email} error={e.email} />
+          <F label="Téléphone (WhatsApp de préférence)" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="06 12 34 56 78" defaultValue={defaults.phone} error={e.phone} />
         </section>
         <section className="space-y-3 rounded-2xl bg-white p-5">
           <h2 className="font-semibold">Adresse de livraison</h2>
-          <F label="Adresse" name="address1" autoComplete="address-line1" error={e.address1} />
-          <F label="Complément (appartement, bâtiment…)" name="address2" autoComplete="address-line2" />
+          <F label="Adresse" name="address1" autoComplete="address-line1" defaultValue={defaults.address1} error={e.address1} />
+          <F label="Complément (appartement, bâtiment…)" name="address2" autoComplete="address-line2" defaultValue={defaults.address2} />
           <div className="grid grid-cols-[120px_1fr] gap-3">
-            <F label="Code postal" name="postalCode" autoComplete="postal-code" inputMode="numeric" maxLength={5} error={e.postalCode} />
-            <F label="Ville" name="city" autoComplete="address-level2" error={e.city} />
+            <F label="Code postal" name="postalCode" autoComplete="postal-code" inputMode="numeric" maxLength={5} defaultValue={defaults.postalCode} error={e.postalCode} />
+            <F label="Ville" name="city" autoComplete="address-level2" defaultValue={defaults.city} error={e.city} />
           </div>
           <p className="text-xs text-muted">Livraison en France métropolitaine.</p>
           <label className="block space-y-1">

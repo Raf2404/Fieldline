@@ -6,6 +6,8 @@ import { CheckoutForm } from "@/components/checkout-form";
 import { Totals } from "@/components/order-summary";
 import { getCartDetails } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { getCustomer } from "@/lib/customer-auth";
+import { formatPhone } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Commande", robots: { index: false } };
@@ -25,11 +27,25 @@ export default function CheckoutPage() {
 }
 
 async function Checkout() {
-  const [{ items, subtotal, hasProblems }, settings] = await Promise.all([getCartDetails(), getSettings()]);
+  const [{ items, subtotal, hasProblems }, settings, customer] = await Promise.all([getCartDetails(), getSettings(), getCustomer()]);
   if (!items.length || hasProblems) redirect("/panier");
   const leadTime = [...new Set(items.map((i) => i.product.leadTime))].join(" / ");
   return (
     <CheckoutForm
+      defaults={
+        customer
+          ? {
+              firstName: customer.firstName ?? "",
+              lastName: customer.lastName ?? "",
+              email: customer.email,
+              phone: customer.phone ? formatPhone(customer.phone) : "",
+              address1: customer.address1 ?? "",
+              address2: customer.address2 ?? "",
+              postalCode: customer.postalCode ?? "",
+              city: customer.city ?? "",
+            }
+          : {}
+      }
       summary={
         <div className="space-y-4 rounded-2xl bg-white p-5">
           <h2 className="font-semibold">Récapitulatif</h2>

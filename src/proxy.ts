@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   const secret = process.env.SESSION_SECRET;
   if (token && secret) {
     try {
-      await jwtVerify(token, new TextEncoder().encode(secret), { algorithms: ["HS256"] });
+      await jwtVerify(token, new TextEncoder().encode(secret), { algorithms: ["HS256"], audience: "admin" });
       return NextResponse.next();
     } catch {}
   }

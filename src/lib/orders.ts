@@ -54,3 +54,35 @@ export function timeLeft(due: Date | string, now = new Date()) {
 
 export const dateFr = (d: Date | string) =>
   new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }).format(new Date(d));
+
+/* ---------- Transporteurs ---------- */
+
+export const CARRIERS = {
+  colissimo: { label: "Colissimo / La Poste", url: (n: string) => `https://www.laposte.fr/outils/suivre-vos-envois?code=${n}` },
+  chronopost: { label: "Chronopost", url: (n: string) => `https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT=${n}` },
+  mondialrelay: { label: "Mondial Relay", url: (n: string) => `https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=${n}` },
+  dhl: { label: "DHL", url: (n: string) => `https://www.dhl.com/fr-fr/home/suivi.html?tracking-id=${n}` },
+  ups: { label: "UPS", url: (n: string) => `https://www.ups.com/track?loc=fr_FR&tracknum=${n}` },
+  gls: { label: "GLS", url: (n: string) => `https://gls-group.com/FR/fr/suivi-colis?match=${n}` },
+  dpd: { label: "DPD", url: (n: string) => `https://trace.dpd.fr/fr/trace/${n}` },
+  autre: { label: "Autre transporteur", url: null },
+} as const;
+export type CarrierCode = keyof typeof CARRIERS;
+
+export function trackingUrl(carrier: string | null, number: string | null) {
+  if (!carrier || !number) return null;
+  const c = CARRIERS[carrier as CarrierCode];
+  return c?.url ? c.url(encodeURIComponent(number)) : null;
+}
+
+export const carrierLabel = (carrier: string | null) => (carrier ? (CARRIERS[carrier as CarrierCode]?.label ?? carrier) : "");
+
+/** « 2 à 3 semaines » → 3 (le plus grand nombre de semaines cité). */
+export function maxWeeks(leadTime: string) {
+  const nums = [...leadTime.matchAll(/\d+/g)].map((m) => Number(m[0]));
+  const n = nums.length ? Math.max(...nums) : 3;
+  return /jour/i.test(leadTime) ? Math.ceil(n / 7) : n;
+}
+
+export const dayFr = (d: Date | string) =>
+  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" }).format(new Date(d));

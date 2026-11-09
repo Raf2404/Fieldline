@@ -167,6 +167,11 @@ export const orders = pgTable(
     paidAt: timestamp("paid_at", { withTimezone: true }),
     /** Vrai quand les paires réservées ont été remises en stock (annulation). */
     stockReleased: boolean("stock_released").notNull().default(false),
+    carrier: text("carrier"),
+    trackingNumber: text("tracking_number"),
+    /** Message du vendeur affiché sur la page de suivi du client. */
+    customerMessage: text("customer_message"),
+    estimatedDeliveryAt: timestamp("estimated_delivery_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -220,3 +225,69 @@ export const settings = pgTable("settings", {
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type OrderStatus = (typeof orderStatus.enumValues)[number];
+
+/* ---------- Clients, e-mails, demandes ---------- */
+
+/** Compte client : créé à la première connexion par lien e-mail. Les commandes sont rattachées par e-mail. */
+export const customers = pgTable("customers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  address1: text("address1"),
+  address2: text("address2"),
+  postalCode: text("postal_code"),
+  city: text("city"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Liens de connexion envoyés par e-mail (on ne garde que l'empreinte du jeton). */
+export const loginTokens = pgTable(
+  "login_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("login_tokens_email_idx").on(t.email)],
+);
+
+/** Journal de tous les e-mails (envoyés, non configurés ou en échec) : sert à vérifier et à renvoyer. */
+export const emails = pgTable(
+  "emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    kind: text("kind").notNull(),
+    to: text("to").notNull(),
+    subject: text("subject").notNull(),
+    html: text("html").notNull(),
+    /** sent, skipped (aucun service configuré), failed */
+    status: text("status").notNull(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("emails_order_idx").on(t.orderId)],
+);
+
+export const customerRequests = pgTable(
+  "customer_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    /** probleme ou retour */
+    type: text("type").notNull(),
+    message: text("message").notNull(),
+    handledAt: timestamp("handled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("customer_requests_order_idx").on(t.orderId)],
+);
+
+export type Customer = typeof customers.$inferSelect;

@@ -11,3 +11,7 @@
 - Schéma : modifier `src/db/schema.ts`, puis `npm run db:generate` et `npm run db:migrate`.
 - Paiement hors site via WhatsApp (pas de PayPal) : une commande naît « pending_payment » avec stock réservé ;
   tout changement de statut passe par `changeOrderStatus()` (`src/lib/order-service.ts`), qui gère la remise en stock et l'historique.
+- E-mails : toujours via `sendEmail()` (`src/lib/email.ts`), qui journalise dans la table `emails` (sans clé Resend : statut « skipped »).
+  Changement de statut côté admin = `changeOrderStatus()` puis `notifyStatus()`.
+- Charte : marine `ink` #202a33, bleu `brand` #06afea, vert `accent` #a1ff2a, `orange` #ff6b21 ; titres h1/h2 en Saira.
+  Le symbole du logo a des traits blancs : ne le poser que sur fond marine.

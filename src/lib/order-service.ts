@@ -3,7 +3,9 @@ import { randomBytes } from "node:crypto";
 import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { compareSizes } from "./catalog";
-import { MAX_PENDING_PER_CUSTOMER, MAX_QTY_PER_LINE, type OrderStatusCode } from "./orders";
+import { adminNewOrderEmail, delayEmail, statusEmail } from "./email-templates";
+import { sendEmail } from "./email";
+import { MAX_PENDING_PER_CUSTOMER, MAX_QTY_PER_LINE, maxWeeks, type OrderStatusCode } from "./orders";
 import { getSettings } from "./settings";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -149,6 +151,17 @@ export async function changeOrderStatus(
     if (o.status === status) return { order: o, stockChanged: false };
     const restock = status === "cancelled" || (status === "refunded" && opts.restock);
     if (restock) await releaseStock(tx, orderId);
+    // Au paiement : date de livraison estimée = aujourd'hui + le plus long délai des articles.
+    let estimatedDeliveryAt = o.estimatedDeliveryAt;
+    if (status === "paid" && !estimatedDeliveryAt) {
+      const leads = await tx
+        .select({ leadTime: schema.products.leadTime })
+        .from(schema.orderItems)
+        .innerJoin(schema.products, eq(schema.products.id, schema.orderItems.productId))
+        .where(eq(schema.orderItems.orderId, orderId));
+      const weeks = Math.max(3, ...leads.map((l) => maxWeeks(l.leadTime)));
+      estimatedDeliveryAt = new Date(Date.now() + weeks * 7 * 86_400_000);
+    }
     const [updated] = await tx
       .update(schema.orders)
       .set({
@@ -156,6 +169,7 @@ export async function changeOrderStatus(
         updatedAt: new Date(),
         ...(status === "paid" && !o.paidAt ? { paidAt: new Date() } : {}),
         ...(status !== "pending_payment" ? { paymentDueAt: null } : {}),
+        estimatedDeliveryAt,
       })
       .where(eq(schema.orders.id, orderId))
       .returning();
@@ -169,18 +183,68 @@ export async function changeOrderStatus(
   });
 }
 
-/** Annule les commandes non payées dans le délai et libère leur stock. Renvoie le nombre annulé. */
+/** Annule les commandes non payées dans le délai, libère leur stock et prévient le client. Renvoie le nombre annulé. */
 export async function expireUnpaidOrders() {
   const stale = await db
     .select({ id: schema.orders.id })
     .from(schema.orders)
     .where(and(eq(schema.orders.status, "pending_payment"), lt(schema.orders.paymentDueAt, new Date())));
   for (const o of stale) {
-    await changeOrderStatus(o.id, "cancelled", "système", {
+    const { stockChanged } = await changeOrderStatus(o.id, "cancelled", "système", {
       message: "Annulée automatiquement : paiement non reçu dans le délai. Paires remises en stock.",
     });
+    if (stockChanged) await notifyStatus(o.id, "cancelled");
   }
   return stale.length;
+}
+
+/* ---------- E-mails ---------- */
+
+async function loadForEmail(orderId: string) {
+  const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, orderId));
+  if (!order) return null;
+  const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
+  return { order, items };
+}
+
+/** E-mail au client correspondant au statut actuel (et trace dans l'historique). */
+export async function notifyStatus(orderId: string, status: OrderStatusCode, message?: string | null) {
+  const data = await loadForEmail(orderId);
+  if (!data) return;
+  const settings = await getSettings();
+  const mail = statusEmail(status, { ...data, whatsapp: settings.whatsapp, message });
+  if (!mail) return;
+  await sendEmail({ to: data.order.email, subject: mail.subject, html: mail.html, kind: status, orderId });
+}
+
+/** Nouvelle commande : e-mail au client + alerte à chaque administrateur. */
+export async function notifyOrderCreated(orderId: string) {
+  await notifyStatus(orderId, "pending_payment");
+  const data = await loadForEmail(orderId);
+  if (!data) return;
+  const admins = await db.select({ email: schema.adminUsers.email }).from(schema.adminUsers);
+  const mail = adminNewOrderEmail(data.order, data.items);
+  for (const a of admins) await sendEmail({ to: a.email, subject: mail.subject, html: mail.html, kind: "admin_new_order", orderId });
+}
+
+/** Expédition : enregistre le suivi, passe en « Expédiée » et envoie le lien de suivi. */
+export async function shipOrder(orderId: string, carrier: string, trackingNumber: string, actor: string) {
+  await db.update(schema.orders).set({ carrier, trackingNumber, updatedAt: new Date() }).where(eq(schema.orders.id, orderId));
+  const res = await changeOrderStatus(orderId, "shipped", actor, { message: `Expédiée (${carrier} · ${trackingNumber}).` });
+  return res;
+}
+
+/** Retard : nouvelle date estimée + message, e-mail au client. */
+export async function notifyDelay(orderId: string, newDate: Date, message: string, actor: string) {
+  const [order] = await db
+    .update(schema.orders)
+    .set({ estimatedDeliveryAt: newDate, updatedAt: new Date() })
+    .where(eq(schema.orders.id, orderId))
+    .returning();
+  if (!order) throw new OrderError("Commande introuvable.");
+  await db.insert(schema.orderEvents).values({ orderId, actor, message: `Client prévenu d'un retard. Nouvelle date estimée : ${newDate.toLocaleDateString("fr-FR")}.` });
+  const mail = delayEmail(order, newDate, message);
+  await sendEmail({ to: order.email, subject: mail.subject, html: mail.html, kind: "delay", orderId });
 }
 
 export async function extendPaymentDelay(orderId: string, hours: number, actor: string) {

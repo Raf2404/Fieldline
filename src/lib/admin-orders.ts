@@ -52,9 +52,30 @@ export async function countOrdersByStatus() {
 export async function getOrder(id: string) {
   const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
   if (!order) return null;
-  const [items, events] = await Promise.all([
+  const [items, events, emails, requests] = await Promise.all([
     db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, id)),
     db.select().from(schema.orderEvents).where(eq(schema.orderEvents.orderId, id)).orderBy(desc(schema.orderEvents.createdAt)),
+    db
+      .select({ id: schema.emails.id, kind: schema.emails.kind, to: schema.emails.to, subject: schema.emails.subject, status: schema.emails.status, error: schema.emails.error, createdAt: schema.emails.createdAt })
+      .from(schema.emails)
+      .where(eq(schema.emails.orderId, id))
+      .orderBy(desc(schema.emails.createdAt)),
+    db.select().from(schema.customerRequests).where(eq(schema.customerRequests.orderId, id)).orderBy(desc(schema.customerRequests.createdAt)),
   ]);
-  return { ...order, items, events };
+  return { ...order, items, events, emails, requests };
+}
+
+/** Alertes du tableau de bord : demandes clients non traitées, commandes en retard (plus de 21 jours après paiement). */
+export async function getOrderAlerts() {
+  const [requests] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(schema.customerRequests)
+    .where(sql`${schema.customerRequests.handledAt} is null`);
+  const late = await db
+    .select({ id: schema.orders.id, number: schema.orders.number, firstName: schema.orders.firstName, lastName: schema.orders.lastName, paidAt: schema.orders.paidAt, status: schema.orders.status })
+    .from(schema.orders)
+    .where(and(inArray(schema.orders.status, ["paid", "ordered", "received"]), sql`${schema.orders.paidAt} < now() - interval '21 days'`))
+    .orderBy(asc(schema.orders.paidAt))
+    .limit(20);
+  return { openRequests: requests.n, late };
 }

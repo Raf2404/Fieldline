@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { canReserve, sizeAvailability } from "@/lib/catalog";
 import { readCart, writeCart } from "@/lib/cart";
-import { OrderError, createOrder, expireUnpaidOrders } from "@/lib/order-service";
+import { OrderError, createOrder, expireUnpaidOrders, notifyOrderCreated } from "@/lib/order-service";
 import { MAX_QTY_PER_LINE, normalizePhone } from "@/lib/orders";
 import { getPublicCatalog } from "@/lib/queries";
 import { expireCatalog } from "@/lib/revalidate";
@@ -80,6 +81,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
       customerNote: d.customerNote || null,
     });
     token = order.token;
+    // E-mails (client + admin) envoyés après la réponse : la page de confirmation s'affiche sans attendre.
+    after(() => notifyOrderCreated(order.id));
   } catch (e) {
     if (e instanceof OrderError) {
       expireCatalog();
@@ -90,6 +93,6 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   }
   await writeCart([]);
   expireCatalog();
-  redirect(`/commande/merci/${token}`);
+  redirect(`/commande/${token}?nouvelle=1`);
 }
 

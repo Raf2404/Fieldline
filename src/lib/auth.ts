@@ -18,6 +18,7 @@ export async function createAdminSession(adminId: string) {
   const token = await new SignJWT({})
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(adminId)
+    .setAudience("admin")
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE}s`)
     .sign(secret());
@@ -41,7 +42,7 @@ export async function getAdmin(): Promise<Admin | null> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"], audience: "admin" });
     if (!payload.sub) return null;
     const [admin] = await db
       .select({
