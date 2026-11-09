@@ -33,7 +33,7 @@ export default function HomePage() {
         <ul className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-5 text-sm sm:grid-cols-3">
           <li className="flex items-center gap-3"><ShieldIcon className="shrink-0" /> <span><b>100 % authentiques</b> · neuves, en boîte</span></li>
           <li className="flex items-center gap-3"><TruckIcon className="shrink-0" /> <span><b>Livraison {SITE.defaultLeadTime}</b> · suivi à chaque étape</span></li>
-          <li className="flex items-center gap-3"><LockIcon className="shrink-0" /> <span><b>Paiement PayPal</b> · compte ou carte bancaire</span></li>
+          <li className="flex items-center gap-3"><LockIcon className="shrink-0" /> <span><b>Réservation en 2 min</b> · paiement sur WhatsApp</span></li>
         </ul>
       </section>
 
@@ -45,7 +45,7 @@ export default function HomePage() {
         <h2 className="text-2xl font-black uppercase tracking-tight">Comment ça marche</h2>
         <ol className="mt-5 grid gap-3 sm:grid-cols-3">
           {[
-            ["Tu réserves", "Choisis ton modèle et ta pointure, puis paie en toute sécurité avec PayPal."],
+            ["Tu réserves", "Choisis ton modèle et ta pointure, valide ta commande puis envoie-nous ton numéro de commande sur WhatsApp pour régler."],
             ["On commande ta paire", "Tu reçois un e-mail à chaque étape : commandée, arrivée chez nous, expédiée."],
             ["Tu la reçois", `Livraison suivie en ${SITE.defaultLeadTime}, avec ton numéro de suivi transporteur.`],
           ].map(([t, d], i) => (

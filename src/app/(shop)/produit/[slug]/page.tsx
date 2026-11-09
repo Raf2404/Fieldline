@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/produit/[slug]">)
   const title = `${p.brand} ${p.name}`;
   return {
     title,
-    description: `${title} authentiques à prix réduit. Livraison suivie en ${p.leadTime}. Paiement sécurisé PayPal.`,
+    description: `${title} authentiques à prix réduit. Livraison suivie en ${p.leadTime}. Réservation en ligne en 2 minutes.`,
     openGraph: { title, images: p.images[0] ? [imageUrl(p.images[0], "lg")] : [] },
   };
 }
@@ -100,7 +100,7 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
 
           <ul className="grid gap-2 text-sm text-muted">
             <li className="flex items-center gap-2"><ShieldIcon className="size-5 text-ink" /> Produit authentique, neuf, en boîte d&apos;origine</li>
-            <li className="flex items-center gap-2"><LockIcon className="size-5 text-ink" /> Paiement sécurisé PayPal (compte ou carte)</li>
+            <li className="flex items-center gap-2"><LockIcon className="size-5 text-ink" /> Paire réservée dès ta commande, paiement ensuite sur WhatsApp</li>
           </ul>
 
           {p.description && (

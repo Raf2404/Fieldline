@@ -9,3 +9,5 @@
 - Chaque page et chaque Server Action de l'admin commence par `await requireAdmin()`.
 - Formulaires avec `useActionState` : soumettre via `onSubmit` + `startTransition`, pas `action={…}`, sinon React vide les champs après une erreur.
 - Schéma : modifier `src/db/schema.ts`, puis `npm run db:generate` et `npm run db:migrate`.
+- Paiement hors site via WhatsApp (pas de PayPal) : une commande naît « pending_payment » avec stock réservé ;
+  tout changement de statut passe par `changeOrderStatus()` (`src/lib/order-service.ts`), qui gère la remise en stock et l'historique.

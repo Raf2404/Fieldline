@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: { default: `${SITE.name} · ${SITE.tagline}`, template: `%s · ${SITE.name}` },
   description:
-    "Crampons de football authentiques à prix réduit : Nike, Adidas, Puma… Réserve ta paire en 2 minutes, paiement PayPal, livraison suivie en 2 à 3 semaines.",
+    "Crampons de football authentiques à prix réduit : Nike, Adidas, Puma… Réserve ta paire en 2 minutes, paiement sur WhatsApp, livraison suivie en 2 à 3 semaines.",
 };
 
 export const viewport: Viewport = { themeColor: "#111110" };

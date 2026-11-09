@@ -2,7 +2,7 @@
 
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { refresh, revalidateTag, updateTag } from "next/cache";
+import { refresh } from "next/cache";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/auth";
@@ -18,19 +18,10 @@ import {
 } from "@/lib/catalog";
 import { CSV_COLUMNS, parseCsv } from "@/lib/csv";
 import { parseEuros } from "@/lib/money";
-import { CATALOG_TAG } from "@/lib/queries";
+import { expireCatalog } from "@/lib/revalidate";
 import { MAX_UPLOAD_BYTES, deleteProductImage, imageUrl, saveProductImage } from "@/lib/storage";
 
 const STATUSES = Object.keys(STATUS_LABELS) as [Status, ...Status[]];
-
-/**
- * Vide le cache du catalogue tout de suite : un prix ou un stock ne doit jamais s'afficher périmé,
- * même une seule fois (revalidateTag avec expire: 0 couvre aussi les pages pré-générées).
- */
-function expireCatalog() {
-  updateTag(CATALOG_TAG);
-  revalidateTag(CATALOG_TAG, { expire: 0 });
-}
 
 function catalogChanged() {
   expireCatalog();

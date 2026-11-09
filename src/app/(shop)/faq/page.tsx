@@ -4,7 +4,7 @@ import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Délais de livraison, tailles, retours, paiement PayPal, authenticité : toutes les réponses.",
+  description: "Délais de livraison, tailles, retours, paiement, authenticité : toutes les réponses.",
 };
 
 // Textes à relire et adapter avant la mise en ligne (notamment retours et remboursements, à aligner sur les CGV).
@@ -37,7 +37,7 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Comment se passe le paiement ?",
-    a: "Le paiement se fait avec PayPal, avec ton compte PayPal ou directement par carte bancaire sans compte. Aucune donnée bancaire n'est stockée sur notre site.",
+    a: "Tu valides ta commande sur le site (ta paire est réservée), puis tu nous envoies ton numéro de commande sur WhatsApp : on te donne les instructions pour régler. Dès réception du paiement, ta commande est confirmée. Sans paiement dans le délai indiqué sur ta confirmation, la réservation est annulée. Aucune donnée bancaire n'est demandée sur le site.",
   },
   {
     q: "Puis-je retourner ma paire ?",

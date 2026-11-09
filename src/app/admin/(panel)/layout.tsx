@@ -5,6 +5,7 @@ import { getAdmin } from "@/lib/auth";
 import { SITE } from "@/lib/site";
 import { logout } from "../connexion/actions";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { RunExpiry } from "@/components/admin/run-expiry";
 
 // Tout l'admin dépend de la session : pas de rendu « instantané » à valider.
 export const instant = false;
@@ -30,6 +31,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           </div>
         </div>
       </header>
+      <RunExpiry />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-black/5" />}>{children}</Suspense>
       </div>

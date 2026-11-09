@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useState, useTransition } from "react";
 import { availabilityLabel, canReserve, sizeAvailability } from "@/lib/catalog";
 import { notifyBackInStock } from "@/app/(shop)/produit/actions";
+import { addToCart } from "@/app/(shop)/panier/actions";
 
 type Props = {
   productId: string;
@@ -16,6 +17,7 @@ type Props = {
 export function SizePicker({ productId, status, allowBackorder, sizes, leadTime }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [adding, startAdding] = useTransition();
   const p = { status, allowBackorder };
   const sel = selected ? sizes.find((s) => s.size === selected) : null;
   const selAvail = sel ? sizeAvailability(p, sel.stock) : null;
@@ -85,13 +87,18 @@ export function SizePicker({ productId, status, allowBackorder, sizes, leadTime 
         <>
           <button
             type="button"
-            disabled={!selAvail || !canReserve(selAvail)}
-            onClick={() => setNotice("Le panier et le paiement PayPal arrivent à l'étape 3 du développement.")}
+            disabled={!selAvail || !canReserve(selAvail) || adding}
+            onClick={() =>
+              startAdding(async () => {
+                const res = await addToCart(productId, selected!);
+                if (res?.error) setNotice(res.error);
+              })
+            }
             className="btn-primary w-full py-4 text-base"
           >
-            {selected ? "Réserver ma paire" : "Choisis ta pointure"}
+            {adding ? "Ajout…" : selected ? "Réserver ma paire" : "Choisis ta pointure"}
           </button>
-          {notice && <p className="rounded-xl bg-accent/40 p-3 text-sm">{notice}</p>}
+          {notice && <p className="rounded-xl bg-sale/10 p-3 text-sm text-sale">{notice}</p>}
         </>
       )}
     </div>

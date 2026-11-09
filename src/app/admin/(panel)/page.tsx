@@ -1,13 +1,26 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/admin-data";
+import { countOrdersByStatus } from "@/lib/admin-orders";
+import { getSettings } from "@/lib/settings";
 
 export default async function AdminHome() {
   const admin = await requireAdmin();
-  const s = await getDashboardStats();
+  const [s, orders, settings] = await Promise.all([getDashboardStats(), countOrdersByStatus(), getSettings()]);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Bonjour {admin.name} 👋</h1>
+      {!settings.whatsapp && (
+        <Link href="/admin/reglages" className="block rounded-2xl bg-warn/10 p-4 text-sm text-warn">
+          <b>Numéro WhatsApp non renseigné.</b> Sans lui, les clients ne peuvent pas t&apos;envoyer leur commande pour payer. Ajoute-le dans les réglages →
+        </Link>
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Paiements à valider" value={orders.pending_payment ?? 0} href="/admin/commandes?onglet=a-valider" highlight />
+        <Stat label="Payées, à commander" value={orders.paid ?? 0} href="/admin/commandes?onglet=a-commander" highlight />
+        <Stat label="En cours" value={(orders.ordered ?? 0) + (orders.received ?? 0)} href="/admin/commandes?onglet=en-cours" />
+        <Stat label="Expédiées / livrées" value={(orders.shipped ?? 0) + (orders.delivered ?? 0)} href="/admin/commandes?onglet=expediees" />
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Articles en ligne" value={s.online} href="/admin/articles?statut=online" />
         <Stat label="Brouillons" value={s.draft} href="/admin/articles?statut=draft" />
@@ -34,16 +47,16 @@ export default async function AdminHome() {
         )}
       </section>
       <section className="rounded-2xl border border-dashed border-line p-5 text-sm text-muted">
-        Chiffre d&apos;affaires, commandes par statut et commandes en retard apparaîtront ici avec le module commandes (étapes 3 à 5).
+        Chiffre d&apos;affaires et commandes en retard (plus de 21 jours) arrivent avec la phase 5.
       </section>
     </div>
   );
 }
 
-function Stat({ label, value, href }: { label: string; value: number; href?: string }) {
+function Stat({ label, value, href, highlight }: { label: string; value: number; href?: string; highlight?: boolean }) {
   const inner = (
     <>
-      <p className="text-3xl font-black">{value}</p>
+      <p className={`text-3xl font-black ${highlight && value > 0 ? "text-warn" : ""}`}>{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </>
   );

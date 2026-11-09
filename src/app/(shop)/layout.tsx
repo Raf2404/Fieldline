@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { readCart } from "@/lib/cart";
 import { BagIcon, TruckIcon } from "@/components/icons";
 import { SITE } from "@/lib/site";
 
@@ -7,7 +9,7 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
     <>
       <div className="bg-ink px-4 py-2 text-center text-xs font-medium text-white">
         <TruckIcon className="mr-1.5 inline size-4 align-[-3px] text-accent" />
-        Livraison suivie en {SITE.defaultLeadTime} · Paiement sécurisé PayPal
+        Livraison suivie en {SITE.defaultLeadTime} · Réservation en 2 minutes
       </div>
       <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
@@ -21,8 +23,11 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
             <Link href="/suivi" className="hidden rounded-full px-3 py-2 hover:bg-black/5 sm:block">
               Suivre ma commande
             </Link>
-            <Link href="/panier" aria-label="Panier" className="rounded-full p-2 hover:bg-black/5">
+            <Link href="/panier" aria-label="Panier" className="relative rounded-full p-2 hover:bg-black/5">
               <BagIcon />
+              <Suspense>
+                <CartCount />
+              </Suspense>
             </Link>
           </nav>
         </div>
@@ -55,5 +60,15 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
         </div>
       </footer>
     </>
+  );
+}
+
+async function CartCount() {
+  const n = (await readCart()).reduce((sum, l) => sum + l.q, 0);
+  if (!n) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-ink">
+      {n}
+    </span>
   );
 }
