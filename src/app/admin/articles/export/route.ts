@@ -6,7 +6,8 @@ import { CSV_COLUMNS, toCsv } from "@/lib/csv";
 import { centsToInput } from "@/lib/money";
 
 export async function GET() {
-  if (!(await getAdmin())) return new Response("Non autorisé", { status: 401 });
+  const admin = await getAdmin();
+  if (!admin) return new Response("Non autorisé", { status: 401 });
   const products = await db
     .select({ p: schema.products, brand: schema.brands.name })
     .from(schema.products)
@@ -22,7 +23,7 @@ export async function GET() {
     p.surfaces.join("|"),
     centsToInput(p.priceCents),
     centsToInput(p.compareAtCents),
-    centsToInput(p.costCents),
+    admin.role === "owner" ? centsToInput(p.costCents) : "",
     p.leadTime,
     p.tags.join("|"),
     p.status,

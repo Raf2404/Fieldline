@@ -4,9 +4,10 @@ import { Suspense } from "react";
 import { ProductGrid } from "@/components/product-card";
 import { LockIcon, ShieldIcon, TruckIcon } from "@/components/icons";
 import { getPublicCatalog } from "@/lib/queries";
-import { SITE } from "@/lib/site";
+import { getSettings } from "@/lib/settings";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { defaultLeadTime } = await getSettings();
   return (
     <>
       <section className="relative overflow-hidden bg-ink text-white">
@@ -33,7 +34,7 @@ export default function HomePage() {
       <section className="border-b border-line bg-white">
         <ul className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-5 text-sm sm:grid-cols-3">
           <li className="flex items-center gap-3"><ShieldIcon className="shrink-0" /> <span><b>100 % authentiques</b> · neuves, en boîte</span></li>
-          <li className="flex items-center gap-3"><TruckIcon className="shrink-0" /> <span><b>Livraison {SITE.defaultLeadTime}</b> · suivi à chaque étape</span></li>
+          <li className="flex items-center gap-3"><TruckIcon className="shrink-0" /> <span><b>Livraison {defaultLeadTime}</b> · suivi à chaque étape</span></li>
           <li className="flex items-center gap-3"><LockIcon className="shrink-0" /> <span><b>Réservation en 2 min</b> · paiement sur WhatsApp</span></li>
         </ul>
       </section>
@@ -48,7 +49,7 @@ export default function HomePage() {
           {[
             ["Tu réserves", "Choisis ton modèle et ta pointure, valide ta commande puis envoie-nous ton numéro de commande sur WhatsApp pour régler."],
             ["On commande ta paire", "Tu reçois un e-mail à chaque étape : commandée, arrivée chez nous, expédiée."],
-            ["Tu la reçois", `Livraison suivie en ${SITE.defaultLeadTime}, avec ton numéro de suivi transporteur.`],
+            ["Tu la reçois", `Livraison suivie en ${defaultLeadTime}, avec ton numéro de suivi transporteur.`],
           ].map(([t, d], i) => (
             <li key={t} className="rounded-2xl border border-line bg-white p-5">
               <span className="grid size-8 place-items-center rounded-full bg-brand text-sm font-black text-white">{i + 1}</span>

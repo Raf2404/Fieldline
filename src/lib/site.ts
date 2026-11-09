@@ -5,5 +5,4 @@ export const SITE = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   instagram: "https://instagram.com/",
   whatsapp: "",
-  defaultLeadTime: "2 à 3 semaines",
 };

@@ -14,13 +14,15 @@ export const metadata: Metadata = { title: { default: "Admin", template: "%s · 
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <div className="min-h-dvh bg-[#f3f3ef] pb-20 md:pb-0">
+    <div className="min-h-dvh bg-[#f3f3ef] pb-20 lg:pb-0">
       <header className="sticky top-0 z-30 bg-ink text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <Logo href="/admin" suffix="gestion" />
-          <AdminNav />
+          <Logo href="/admin" />
+          <Suspense fallback={<AdminNav role="staff" />}>
+            <NavForRole />
+          </Suspense>
           <div className="ml-auto flex items-center gap-2 text-sm">
-            <Link href="/" target="_blank" className="hidden rounded-full px-3 py-1.5 hover:bg-white/10 sm:block">
+            <Link href="/" target="_blank" className="hidden whitespace-nowrap rounded-full px-3 py-1.5 hover:bg-white/10 sm:block">
               Voir le site ↗
             </Link>
             <Suspense>
@@ -37,12 +39,17 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   );
 }
 
+async function NavForRole() {
+  const admin = await getAdmin();
+  return <AdminNav role={admin?.role ?? "staff"} />;
+}
+
 async function AdminBadge() {
   const admin = await getAdmin();
   if (!admin) return null;
   return (
     <form action={logout}>
-      <button className="rounded-full px-3 py-1.5 text-white/60 hover:bg-white/10 hover:text-white">Déconnexion</button>
+      <button className="whitespace-nowrap rounded-full px-3 py-1.5 text-white/60 hover:bg-white/10 hover:text-white">Déconnexion</button>
     </form>
   );
 }

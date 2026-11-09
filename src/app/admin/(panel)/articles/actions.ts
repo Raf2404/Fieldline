@@ -101,7 +101,7 @@ async function deleteOrphanImages(keys: string[]) {
 }
 
 export async function saveProduct(_prev: SaveState, formData: FormData): Promise<SaveState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const id = String(formData.get("id") ?? "") || null;
 
   const raw = {
@@ -152,7 +152,7 @@ export async function saveProduct(_prev: SaveState, formData: FormData): Promise
     surfaces: d.surfaces,
     priceCents: d.priceCents,
     compareAtCents: d.compareAtCents,
-    costCents: d.costCents,
+    ...(admin.role === "owner" ? { costCents: d.costCents } : {}),
     description: d.description,
     leadTime: d.leadTime,
     tags: d.tags,
@@ -314,7 +314,7 @@ export async function reorderProducts(ids: string[]) {
 export type ImportState = { ok?: boolean; message?: string; errors?: string[] } | null;
 
 export async function importCsv(_prev: ImportState, formData: FormData): Promise<ImportState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const file = formData.get("file");
   if (!(file instanceof File) || !file.size) return { ok: false, message: "Choisis un fichier CSV." };
   const rows = parseCsv(await file.text());
@@ -372,7 +372,7 @@ export async function importCsv(_prev: ImportState, formData: FormData): Promise
       surfaces: col(r, "terrains").split("|").map((s) => s.trim().toUpperCase()).filter((s) => (SURFACE_CODES as string[]).includes(s)),
       priceCents: price,
       compareAtCents: compareAt,
-      costCents: cost,
+      ...(admin.role === "owner" ? { costCents: cost } : {}),
       leadTime: col(r, "delai") || DEFAULT_LEAD_TIME,
       tags: col(r, "tags").split("|").map((s) => s.trim()).filter((t) => TAG_CODES.includes(t)),
       status,

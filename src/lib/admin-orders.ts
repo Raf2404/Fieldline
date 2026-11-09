@@ -34,11 +34,15 @@ export async function listOrders(tab: string, q: string) {
     .from(schema.orders)
     .where(and(...conds))
     .orderBy(t.code === "a-valider" ? asc(schema.orders.paymentDueAt) : desc(schema.orders.createdAt))
-    .limit(200);
-  const items = orders.length
-    ? await db.select().from(schema.orderItems).where(inArray(schema.orderItems.orderId, orders.map((o) => o.id)))
-    : [];
-  return orders.map((o) => ({ ...o, items: items.filter((i) => i.orderId === o.id) }));
+    .limit(t.code === "toutes" ? 1000 : 300);
+  const ids = orders.map((o) => o.id);
+  const [items, requests] = ids.length
+    ? await Promise.all([
+        db.select().from(schema.orderItems).where(inArray(schema.orderItems.orderId, ids)),
+        db.select({ orderId: schema.customerRequests.orderId }).from(schema.customerRequests).where(and(inArray(schema.customerRequests.orderId, ids), sql`${schema.customerRequests.handledAt} is null`)),
+      ])
+    : [[], []];
+  return orders.map((o) => ({ ...o, items: items.filter((i) => i.orderId === o.id), openRequests: requests.filter((r) => r.orderId === o.id).length }));
 }
 
 export async function countOrdersByStatus() {
@@ -78,4 +82,75 @@ export async function getOrderAlerts() {
     .orderBy(asc(schema.orders.paidAt))
     .limit(20);
   return { openRequests: requests.n, late };
+}
+
+const SOLD = ["paid", "ordered", "received", "shipped", "delivered"] as const;
+
+/** Chiffre d'affaires encaissé (date de paiement, heure de Paris), meilleures ventes et pointures sur 90 jours. */
+export async function getSalesStats() {
+  const tz = sql.raw("'Europe/Paris'");
+  const sum = (unit: "day" | "week" | "month") =>
+    sql<number>`coalesce(sum(${schema.orders.totalCents}) filter (where ${schema.orders.paidAt} >= date_trunc('${sql.raw(unit)}', now() at time zone ${tz}) at time zone ${tz}), 0)`.mapWith(Number);
+  const cnt = (unit: "day" | "week" | "month") =>
+    sql<number>`count(*) filter (where ${schema.orders.paidAt} >= date_trunc('${sql.raw(unit)}', now() at time zone ${tz}) at time zone ${tz})`.mapWith(Number);
+  const [rev] = await db
+    .select({ day: sum("day"), week: sum("week"), month: sum("month"), dayN: cnt("day"), weekN: cnt("week"), monthN: cnt("month") })
+    .from(schema.orders)
+    .where(inArray(schema.orders.status, [...SOLD]));
+  const since = sql`${schema.orders.paidAt} > now() - interval '90 days'`;
+  const qty = sql<number>`sum(${schema.orderItems.quantity})`.mapWith(Number);
+  const [best, sizes] = await Promise.all([
+    db
+      .select({ name: sql<string>`${schema.orderItems.brand} || ' ' || ${schema.orderItems.productName}`, qty })
+      .from(schema.orderItems)
+      .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+      .where(and(inArray(schema.orders.status, [...SOLD]), since))
+      .groupBy(schema.orderItems.brand, schema.orderItems.productName)
+      .orderBy(desc(qty))
+      .limit(5),
+    db
+      .select({ size: schema.orderItems.size, qty })
+      .from(schema.orderItems)
+      .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+      .where(and(inArray(schema.orders.status, [...SOLD]), since))
+      .groupBy(schema.orderItems.size)
+      .orderBy(desc(qty))
+      .limit(6),
+  ]);
+  return { revenue: rev, best, sizes };
+}
+
+/** Clients = toutes les adresses e-mail ayant commandé, avec ou sans compte. */
+export async function listCustomers(q: string) {
+  const spent = sql<number>`coalesce(sum(${schema.orders.totalCents}) filter (where ${schema.orders.status} in ('paid','ordered','received','shipped','delivered')), 0)`.mapWith(Number);
+  const count = sql<number>`count(*) filter (where ${schema.orders.status} not in ('cancelled'))`.mapWith(Number);
+  const last = sql<Date>`max(${schema.orders.createdAt})`;
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  return db
+    .select({
+      email: schema.orders.email,
+      name: sql<string>`(array_agg(${schema.orders.firstName} || ' ' || ${schema.orders.lastName} order by ${schema.orders.createdAt} desc))[1]`,
+      phone: sql<string>`(array_agg(${schema.orders.phone} order by ${schema.orders.createdAt} desc))[1]`,
+      orders: count,
+      spent,
+      last,
+      hasAccount: sql<boolean>`exists(select 1 from ${schema.customers} c where c.email = ${schema.orders.email})`,
+    })
+    .from(schema.orders)
+    .where(q ? or(ilike(schema.orders.email, like), ilike(sql`${schema.orders.firstName} || ' ' || ${schema.orders.lastName}`, like)) : undefined)
+    .groupBy(schema.orders.email)
+    .orderBy(desc(spent), desc(last))
+    .limit(500);
+}
+
+export async function getCustomerFile(email: string) {
+  const orders = await db.select().from(schema.orders).where(eq(schema.orders.email, email)).orderBy(desc(schema.orders.createdAt));
+  if (!orders.length) return null;
+  const ids = orders.map((o) => o.id);
+  const [items, requests, [account]] = await Promise.all([
+    db.select().from(schema.orderItems).where(inArray(schema.orderItems.orderId, ids)),
+    db.select().from(schema.customerRequests).where(inArray(schema.customerRequests.orderId, ids)).orderBy(desc(schema.customerRequests.createdAt)),
+    db.select().from(schema.customers).where(eq(schema.customers.email, email)),
+  ]);
+  return { orders, items, requests, account: account ?? null };
 }

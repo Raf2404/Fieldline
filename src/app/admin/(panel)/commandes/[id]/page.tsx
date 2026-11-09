@@ -31,6 +31,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
         <h1 className="text-2xl font-bold">Commande {ref}</h1>
         <span className={`rounded-full px-3 py-1 text-sm font-semibold ${st.tone}`}>{st.label}</span>
         <span className="text-sm text-muted">passée le {dateFr(o.createdAt)}</span>
+        <a href={`/admin/bon/${o.id}`} target="_blank" className="btn-secondary btn-sm ml-auto">Bon de livraison</a>
       </div>
 
       {o.estimatedDeliveryAt && !["delivered", "cancelled", "refunded"].includes(o.status) && (
@@ -70,7 +71,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/commandes/
                 </li>
               ))}
             </ul>
-            <div className="mt-3 border-t border-line pt-3"><Totals subtotal={o.subtotalCents} shipping={o.shippingCents} /></div>
+            <div className="mt-3 border-t border-line pt-3"><Totals subtotal={o.subtotalCents} shipping={o.shippingCents} discount={o.discountCents} code={o.promoCode} /></div>
           </section>
 
           <section className="rounded-2xl bg-white p-5">

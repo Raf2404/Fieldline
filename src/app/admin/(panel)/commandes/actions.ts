@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { db, schema } from "@/db";
@@ -139,4 +139,21 @@ export async function runExpiry() {
     refresh();
   }
   return n;
+}
+
+/** Actions groupées : fait avancer d'une étape les commandes sélectionnées qui sont à l'étape précédente. */
+export async function bulkAdvance(orderIds: string[], status: "ordered" | "received" | "delivered") {
+  const admin = await requireAdmin();
+  const ids = z.array(z.uuid()).max(200).parse(orderIds);
+  const from = { ordered: "paid", received: "ordered", delivered: "shipped" }[status];
+  const rows = ids.length ? await db.select({ id: schema.orders.id, status: schema.orders.status }).from(schema.orders).where(inArray(schema.orders.id, ids)) : [];
+  let done = 0;
+  for (const r of rows) {
+    if (r.status !== from) continue;
+    await changeOrderStatus(r.id, status, admin.name, { message: `Passée en « ${ORDER_STATUS[status].label} » (action groupée).` });
+    await notifyStatus(r.id, status);
+    done++;
+  }
+  refresh();
+  return { done, skipped: ids.length - done };
 }

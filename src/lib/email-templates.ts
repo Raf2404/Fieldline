@@ -48,6 +48,7 @@ function itemsTable(order: Order, items: OrderItem[]) {
     )
     .join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;font-size:14px">${rows}
+    ${order.discountCents ? `<tr><td style="padding:8px 0;color:#1f8a4c">Code ${esc(order.promoCode ?? "")}</td><td style="padding:8px 0;text-align:right;color:#1f8a4c">-${formatPrice(order.discountCents)}</td></tr>` : ""}
     <tr><td style="padding:8px 0;color:${C.muted}">Livraison</td><td style="padding:8px 0;text-align:right">${order.shippingCents ? formatPrice(order.shippingCents) : "Offerte"}</td></tr>
     <tr><td style="padding:8px 0;font-weight:700">Total</td><td style="padding:8px 0;text-align:right;font-weight:700">${formatPrice(order.totalCents)}</td></tr>
   </table>`;
@@ -55,75 +56,83 @@ function itemsTable(order: Order, items: OrderItem[]) {
 
 export const orderUrl = (o: Order) => `${SITE.url}/commande/${o.token}`;
 
-type Ctx = { order: Order; items: OrderItem[]; whatsapp?: string; message?: string | null };
+type Ctx = { order: Order; items: OrderItem[]; whatsapp?: string; message?: string | null; custom?: string | null };
+
+/**
+ * Texte principal de chaque e-mail de statut, modifiable dans Admin > Réglages.
+ * Variables : {prenom}, {commande}, {total}, {date_livraison}.
+ */
+export const DEFAULT_EMAIL_TEXTS: Record<string, { subject: string; title: string; text: string }> = {
+  pending_payment: {
+    subject: "Commande {commande} réservée : dernière étape, le paiement",
+    title: "Ta commande {commande} est réservée",
+    text: "Merci ! Ta paire est mise de côté.\n\nDernière étape : envoie-nous ton numéro de commande {commande} sur WhatsApp, on te donne les instructions pour régler. Sans paiement dans le délai indiqué, la commande est annulée automatiquement.",
+  },
+  paid: {
+    subject: "Paiement reçu : commande {commande} confirmée",
+    title: "Paiement reçu, c'est confirmé !",
+    text: "Nous avons bien reçu ton paiement pour la commande {commande}. On commande ta paire tout de suite.\n\nLivraison estimée : {date_livraison}. Tu recevras un e-mail à chaque étape.",
+  },
+  ordered: { subject: "Ta paire est commandée ({commande})", title: "Ta paire est commandée", text: "Bonne nouvelle : ta paire est commandée auprès de notre fournisseur. Livraison estimée : {date_livraison}." },
+  received: { subject: "Ta paire est arrivée chez nous ({commande})", title: "Ta paire est arrivée chez nous", text: "Ta paire vient d'arriver chez nous. On la prépare et l'expédition est imminente." },
+  shipped: { subject: "Ta commande {commande} est expédiée", title: "Ta commande est en route !", text: "Ta paire est expédiée. Tu peux suivre ton colis avec le lien ci-dessous." },
+  delivered: {
+    subject: "Livrée ! Merci pour ta commande {commande}",
+    title: "Bon match avec tes nouveaux crampons !",
+    text: "Ta commande {commande} est livrée. Merci de ta confiance !\n\nTon avis nous aide beaucoup : réponds simplement à cet e-mail pour nous dire ce que tu en penses.",
+  },
+  cancelled: {
+    subject: "Commande {commande} annulée",
+    title: "Ta commande est annulée",
+    text: "Ta commande {commande} est annulée. Les paires réservées sont remises en vente. Tu peux repasser commande à tout moment sur le site.",
+  },
+  refunded: { subject: "Remboursement de ta commande {commande}", title: "Remboursement effectué", text: "Le remboursement de ta commande {commande} ({total}) a été effectué." },
+};
+
+function fill(t: string, order: Order) {
+  return t
+    .replaceAll("{prenom}", order.firstName)
+    .replaceAll("{commande}", orderRef(order.number))
+    .replaceAll("{total}", formatPrice(order.totalCents))
+    .replaceAll("{date_livraison}", order.estimatedDeliveryAt ? dayFr(order.estimatedDeliveryAt) : "2 à 3 semaines après le paiement");
+}
+
+const paragraphs = (t: string) =>
+  t
+    .split(/\n{2,}/)
+    .map((para) => p(esc(para).replace(/\n/g, "<br>")))
+    .join("");
 
 /** E-mail envoyé au client pour chaque statut (ou null si aucun e-mail pour ce statut). */
-export function statusEmail(status: string, { order, items, whatsapp, message }: Ctx) {
+export function statusEmail(status: string, { order, items, whatsapp, message, custom }: Ctx) {
+  const def = DEFAULT_EMAIL_TEXTS[status];
+  if (!def) return null;
   const ref = orderRef(order.number);
-  const hi = p(`Bonjour ${esc(order.firstName)},`);
+  const body = paragraphs(fill(custom?.trim() || def.text, order));
   const extra = message ? `<div style="margin:0 0 14px;padding:14px;border-radius:12px;background:${C.paper}">${esc(message).replace(/\n/g, "<br>")}</div>` : "";
   const follow = button("Suivre ma commande", orderUrl(order));
-  const eta = order.estimatedDeliveryAt ? `Livraison estimée : <b>${esc(dayFr(order.estimatedDeliveryAt))}</b>.` : "";
-
-  switch (status) {
-    case "pending_payment": {
-      const wa = whatsapp
-        ? button("Envoyer ma commande sur WhatsApp", whatsappLink(whatsapp, `Bonjour, je viens de passer la commande ${ref} sur ${SITE.name}. Comment puis-je régler ?`), "#25D366")
-        : "";
-      return {
-        subject: `Commande ${ref} réservée : dernière étape, le paiement`,
-        html: layout(`Ta commande ${ref} est réservée`, `${hi}
-          ${p(`Merci ! Ta paire est mise de côté${order.paymentDueAt ? ` jusqu'au <b>${esc(dateFr(order.paymentDueAt))}</b>` : ""}.`)}
-          ${p(`<b>Dernière étape :</b> envoie-nous ton numéro de commande <b>${ref}</b> sur WhatsApp, on te donne les instructions pour régler. Sans paiement dans ce délai, la commande est annulée automatiquement.`)}
-          ${wa}${itemsTable(order, items)}${follow}`, `Envoie-nous ${ref} sur WhatsApp pour régler.`),
-      };
-    }
-    case "paid":
-      return {
-        subject: `Paiement reçu : commande ${ref} confirmée`,
-        html: layout("Paiement reçu, c'est confirmé !", `${hi}
-          ${p(`Nous avons bien reçu ton paiement pour la commande <b>${ref}</b>. On commande ta paire tout de suite.`)}
-          ${p(`${eta} Tu recevras un e-mail à chaque étape.`)}${extra}${itemsTable(order, items)}${follow}`, "Ta commande est confirmée."),
-      };
-    case "ordered":
-      return {
-        subject: `Ta paire est commandée (${ref})`,
-        html: layout("Ta paire est commandée", `${hi}${p(`Bonne nouvelle : ta paire est commandée auprès de notre fournisseur. ${eta}`)}${extra}${follow}`, "Ta paire est en route vers nous."),
-      };
-    case "received":
-      return {
-        subject: `Ta paire est arrivée chez nous (${ref})`,
-        html: layout("Ta paire est arrivée chez nous", `${hi}${p("Ta paire vient d'arriver chez nous. On la prépare et l'expédition est imminente.")}${extra}${follow}`, "Expédition imminente."),
-      };
-    case "shipped": {
-      const url = trackingUrl(order.carrier, order.trackingNumber);
-      return {
-        subject: `Ta commande ${ref} est expédiée`,
-        html: layout("Ta commande est en route !", `${hi}${p("Ta paire est expédiée.")}
-          ${order.trackingNumber ? p(`Transporteur : <b>${esc(carrierLabel(order.carrier))}</b><br>Numéro de suivi : <b>${esc(order.trackingNumber)}</b>`) : ""}
-          ${extra}${url ? button("Suivre mon colis", url, C.brand) : follow}`, "Ton colis est en route."),
-      };
-    }
-    case "delivered":
-      return {
-        subject: `Livrée ! Merci pour ta commande ${ref}`,
-        html: layout("Bon match avec tes nouveaux crampons !", `${hi}${p(`Ta commande <b>${ref}</b> est livrée. Merci de ta confiance !`)}
-          ${p("Ton avis nous aide beaucoup : réponds simplement à cet e-mail pour nous dire ce que tu en penses.")}${extra}`, "Merci pour ta commande."),
-      };
-    case "cancelled":
-      return {
-        subject: `Commande ${ref} annulée`,
-        html: layout("Ta commande est annulée", `${hi}${p(`Ta commande <b>${ref}</b> est annulée${order.paidAt ? "" : " (paiement non reçu dans le délai)"}. Les paires réservées sont remises en vente.`)}
-          ${extra}${p("Tu peux repasser commande à tout moment sur le site.")}${button("Voir le catalogue", `${SITE.url}/catalogue`)}`, "Ta commande est annulée."),
-      };
-    case "refunded":
-      return {
-        subject: `Remboursement de ta commande ${ref}`,
-        html: layout("Remboursement effectué", `${hi}${p(`Le remboursement de ta commande <b>${ref}</b> (${formatPrice(order.totalCents)}) a été effectué.`)}${extra}`, "Ton remboursement est effectué."),
-      };
-    default:
-      return null;
+  let after = follow;
+  if (status === "pending_payment") {
+    const wa = whatsapp
+      ? button("Envoyer ma commande sur WhatsApp", whatsappLink(whatsapp, `Bonjour, je viens de passer la commande ${ref} sur ${SITE.name}. Comment puis-je régler ?`), "#25D366")
+      : "";
+    const due = order.paymentDueAt ? p(`Paire réservée jusqu'au <b>${esc(dateFr(order.paymentDueAt))}</b>.`) : "";
+    after = `${due}${wa}${itemsTable(order, items)}${follow}`;
+  } else if (status === "paid") {
+    after = `${itemsTable(order, items)}${follow}`;
+  } else if (status === "shipped") {
+    const url = trackingUrl(order.carrier, order.trackingNumber);
+    const info = order.trackingNumber ? p(`Transporteur : <b>${esc(carrierLabel(order.carrier))}</b><br>Numéro de suivi : <b>${esc(order.trackingNumber)}</b>`) : "";
+    after = `${info}${url ? button("Suivre mon colis", url, C.brand) : follow}`;
+  } else if (status === "delivered" || status === "refunded") {
+    after = "";
+  } else if (status === "cancelled") {
+    after = button("Voir le catalogue", `${SITE.url}/catalogue`);
   }
+  return {
+    subject: fill(def.subject, order),
+    html: layout(fill(def.title, order), `${p(`Bonjour ${esc(order.firstName)},`)}${body}${extra}${after}`, fill(def.title, order)),
+  };
 }
 
 export function delayEmail(order: Order, newDate: Date, message: string) {

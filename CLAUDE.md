@@ -15,3 +15,6 @@
   Changement de statut côté admin = `changeOrderStatus()` puis `notifyStatus()`.
 - Charte : marine `ink` #202a33, bleu `brand` #06afea, vert `accent` #a1ff2a, `orange` #ff6b21 ; titres h1/h2 en Saira.
   Le symbole du logo a des traits blancs : ne le poser que sur fond marine.
+- Rôles admin : `owner` (tout) et `staff` (associé). Pages et actions réservées au propriétaire : `requireOwner()`.
+  Un associé ne voit ni ne modifie jamais `costCents` (prix d'achat).
+- Codes promo : la remise est toujours recalculée dans `createOrder()` ; les utilisations se comptent sur les commandes non annulées.

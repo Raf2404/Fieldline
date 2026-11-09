@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CartQty } from "@/components/cart-line";
 import { Totals } from "@/components/order-summary";
+import { PromoForm } from "@/components/promo-form";
 import { getCartDetails } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
@@ -22,7 +23,7 @@ export default function CartPage() {
 }
 
 async function Cart() {
-  const [{ items, subtotal, hasProblems }, settings] = await Promise.all([getCartDetails(), getSettings()]);
+  const [{ items, subtotal, hasProblems, promo, discount }, settings] = await Promise.all([getCartDetails(), getSettings()]);
   if (!items.length) {
     return (
       <div className="mt-6 rounded-2xl border border-dashed border-line bg-white p-10 text-center">
@@ -59,7 +60,8 @@ async function Cart() {
         ))}
       </ul>
       <div className="space-y-4 rounded-2xl bg-white p-5">
-        <Totals subtotal={subtotal} shipping={settings.shippingCents} />
+        <PromoForm current={promo?.code ?? null} error={promo?.error ?? null} />
+        <Totals subtotal={subtotal} shipping={settings.shippingCents} discount={discount} code={promo?.code} />
         <p className="rounded-xl bg-paper p-3 text-sm text-muted">
           Livraison estimée : <b className="text-ink">{leadTime}</b> après le paiement. Le paiement se règle ensuite sur WhatsApp.
         </p>

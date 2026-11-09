@@ -27,7 +27,7 @@ Supabase Storage pour les photos · Vercel pour l'hébergement.
 | 1-2 | Catalogue public (accueil, catalogue filtrable, fiche produit, FAQ, guide des tailles) + gestion des articles sans code | ✅ fait |
 | 3 | Panier, commande, paiement via WhatsApp, réservation et libération du stock, admin commandes, réglages | ✅ fait |
 | 4 | E-mails automatiques, numéros de suivi transporteur, page « Suivre ma commande », espace client, demandes problème / retour | ✅ fait |
-| 5 | Chiffre d'affaires, codes promo, actions groupées, export commandes, textes d'e-mails modifiables, compte associé | à faire |
+| 5 | Chiffre d'affaires, codes promo, actions groupées, export commandes, bon de livraison, clients, réglages complets, équipe, double authentification | ✅ fait |
 | 6 | Pages légales (CGV avec les conditions de paiement), contact, facture PDF, nom de domaine, mise en ligne | à faire |
 
 ### Déjà en place
@@ -51,6 +51,13 @@ Supabase Storage pour les photos · Vercel pour l'hébergement.
   « Signaler un problème » / « Demander un retour ». Page « Suivre ma commande » (numéro + e-mail, sans compte).
 - **Espace client** : connexion sans mot de passe par lien e-mail (usage unique, 30 min), toutes les commandes passées
   avec cet e-mail, profil qui pré-remplit la commande suivante, suppression du compte (RGPD).
+- **Gestion (phase 5)** : chiffre d'affaires du jour / de la semaine / du mois, meilleures ventes et pointures
+  les plus demandées ; codes promo (% ou montant fixe, date de fin, nombre d'utilisations, panier minimum) ;
+  actions groupées sur les commandes (ex. 10 paires reçues d'un coup, chaque client prévenu) ; export CSV des
+  commandes (une ligne par article) ; bon de livraison imprimable ; liste et fiches clients ; réglages : délai
+  affiché, réseaux sociaux, informations légales, textes des e-mails ; équipe avec compte **associé**
+  (articles, commandes, clients, promos — sans réglages, équipe, chiffre d'affaires ni prix d'achat) ;
+  **double authentification** (application Google Authenticator ou équivalent) et changement de mot de passe.
 - **Règles** : un article passe seul en « Rupture de stock » quand toutes ses pointures sont à 0 (sauf « Vente sur commande »).
   Toute modification dans l'admin est visible immédiatement sur le site.
 

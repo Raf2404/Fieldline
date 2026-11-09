@@ -95,8 +95,11 @@ export const adminUsers = pgTable("admin_users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
-  /** owner : tous les droits ; staff : associé aux droits limités (sera utilisé plus tard). */
+  /** owner : tous les droits ; staff : associé (articles et commandes, sans réglages, équipe ni chiffre d'affaires). */
   role: text("role").notNull().default("owner"),
+  /** Double authentification (application type Google Authenticator). */
+  totpSecret: text("totp_secret"),
+  totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -160,6 +163,8 @@ export const orders = pgTable(
     customerNote: text("customer_note"),
     internalNote: text("internal_note"),
     subtotalCents: integer("subtotal_cents").notNull(),
+    promoCode: text("promo_code"),
+    discountCents: integer("discount_cents").notNull().default(0),
     shippingCents: integer("shipping_cents").notNull(),
     totalCents: integer("total_cents").notNull(),
     /** Au-delà, une commande non payée est annulée et le stock libéré. */
@@ -291,3 +296,18 @@ export const customerRequests = pgTable(
 );
 
 export type Customer = typeof customers.$inferSelect;
+
+export const promoCodes = pgTable("promo_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Toujours en majuscules. */
+  code: text("code").notNull().unique(),
+  /** percent (value = %) ou fixed (value = centimes) */
+  type: text("type").notNull(),
+  value: integer("value").notNull(),
+  minSubtotalCents: integer("min_subtotal_cents"),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  maxUses: integer("max_uses"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export type PromoCode = typeof promoCodes.$inferSelect;

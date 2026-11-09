@@ -51,7 +51,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function ProductForm({ product, brands, notice }: { product: FormProduct; brands: { id: string; name: string }[]; notice?: string }) {
+export function ProductForm({ product, brands, notice, showCost = true }: { product: FormProduct; brands: { id: string; name: string }[]; notice?: string; showCost?: boolean }) {
   const [state, action, pending] = useActionState<SaveState, FormData>(saveProduct, null);
   const e = state?.errors ?? {};
   const [brandId, setBrandId] = useState(product.brandId || (brands[0]?.id ?? "__new"));
@@ -161,9 +161,9 @@ export function ProductForm({ product, brands, notice }: { product: FormProduct;
             <Field label="Prix barré / prix marché (€)" error={e.compareAtCents} hint={off ? `Affiché : -${off} %` : "Optionnel"}>
               <input name="compareAt" value={compareAt} onChange={(ev) => setCompareAt(ev.target.value)} inputMode="decimal" className="input" placeholder="249" />
             </Field>
-            <Field label="Prix d'achat (€)" error={e.costCents} hint={margin != null ? `Marge brute : ${(margin / 100).toFixed(2).replace(".", ",")} € · visible seulement ici` : "Visible seulement dans l'admin"}>
+            {showCost && <Field label="Prix d'achat (€)" error={e.costCents} hint={margin != null ? `Marge brute : ${(margin / 100).toFixed(2).replace(".", ",")} € · visible seulement ici` : "Visible seulement dans l'admin"}>
               <input name="cost" value={cost} onChange={(ev) => setCost(ev.target.value)} inputMode="decimal" className="input" />
-            </Field>
+            </Field>}
           </Card>
 
           <Card title="Livraison et mise en avant">

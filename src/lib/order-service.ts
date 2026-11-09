@@ -6,6 +6,7 @@ import { compareSizes } from "./catalog";
 import { adminNewOrderEmail, delayEmail, statusEmail } from "./email-templates";
 import { sendEmail } from "./email";
 import { MAX_PENDING_PER_CUSTOMER, MAX_QTY_PER_LINE, maxWeeks, type OrderStatusCode } from "./orders";
+import { checkPromo } from "./promo";
 import { getSettings } from "./settings";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -28,7 +29,7 @@ export type Customer = {
  * Crée une commande « En attente de paiement » et réserve les paires.
  * Prix et stock sont relus en base : rien ne vient du navigateur à part les pointures et quantités.
  */
-export async function createOrder(lines: { p: string; s: string; q: number }[], customer: Customer) {
+export async function createOrder(lines: { p: string; s: string; q: number }[], customer: Customer, promoCode?: string) {
   if (!lines.length) throw new OrderError("Ton panier est vide.");
   const settings = await getSettings();
 
@@ -99,6 +100,14 @@ export async function createOrder(lines: { p: string; s: string; q: number }[], 
 
     const subtotal = items.reduce((n, i) => n + i.unitPriceCents * i.quantity, 0);
     const shipping = settings.shippingCents;
+    let discount = 0;
+    let code: string | null = null;
+    if (promoCode) {
+      const r = await checkPromo(promoCode, subtotal);
+      if ("error" in r) throw new OrderError(`Code promo : ${r.error}`);
+      discount = r.discount;
+      code = r.promo.code;
+    }
     const [order] = await tx
       .insert(schema.orders)
       .values({
@@ -106,8 +115,10 @@ export async function createOrder(lines: { p: string; s: string; q: number }[], 
         token,
         status: "pending_payment",
         subtotalCents: subtotal,
+        promoCode: code,
+        discountCents: discount,
         shippingCents: shipping,
-        totalCents: subtotal + shipping,
+        totalCents: subtotal - discount + shipping,
         paymentDueAt: new Date(Date.now() + settings.paymentDelayHours * 3_600_000),
       })
       .returning();
@@ -212,7 +223,8 @@ export async function notifyStatus(orderId: string, status: OrderStatusCode, mes
   const data = await loadForEmail(orderId);
   if (!data) return;
   const settings = await getSettings();
-  const mail = statusEmail(status, { ...data, whatsapp: settings.whatsapp, message });
+  const custom = settings.emailTexts[status as keyof typeof settings.emailTexts];
+  const mail = statusEmail(status, { ...data, whatsapp: settings.whatsapp, message, custom });
   if (!mail) return;
   await sendEmail({ to: data.order.email, subject: mail.subject, html: mail.html, kind: status, orderId });
 }

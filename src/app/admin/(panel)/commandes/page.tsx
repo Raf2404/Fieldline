@@ -3,8 +3,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { ORDER_TABS, countOrdersByStatus, listOrders } from "@/lib/admin-orders";
-import { formatPrice } from "@/lib/money";
-import { ORDER_STATUS, dateFr, orderRef, timeLeft } from "@/lib/orders";
+import { OrderList } from "@/components/admin/order-list";
 
 export const metadata: Metadata = { title: "Commandes" };
 
@@ -20,7 +19,10 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/com
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Commandes</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="mr-auto text-2xl font-bold">Commandes</h1>
+        <a download href={`/admin/export-commandes?onglet=${tab}`} className="btn-secondary btn-sm">Exporter (CSV)</a>
+      </div>
       <nav className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 text-sm">
         {ORDER_TABS.map((t) => {
           const n = tabCount(t);
@@ -42,32 +44,23 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/com
         <button className="btn-secondary btn-sm">Rechercher</button>
       </Form>
 
-      {orders.length ? (
-        <ul className="space-y-2">
-          {orders.map((o) => (
-            <li key={o.id}>
-              <Link href={`/admin/commandes/${o.id}`} className="block rounded-2xl bg-white p-4 transition hover:ring-2 hover:ring-ink/10">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-bold">{orderRef(o.number)}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${ORDER_STATUS[o.status].tone}`}>{ORDER_STATUS[o.status].label}</span>
-                  {o.status === "pending_payment" && o.paymentDueAt && (
-                    <span className={`text-xs font-medium ${new Date(o.paymentDueAt).getTime() - now.getTime() < 6 * 3_600_000 ? "text-sale" : "text-muted"}`}>
-                      ⏱ {timeLeft(o.paymentDueAt, now)}
-                    </span>
-                  )}
-                  <span className="ml-auto font-semibold">{formatPrice(o.totalCents)}</span>
-                </div>
-                <p className="mt-1 text-sm">{o.firstName} {o.lastName} <span className="text-muted">· {dateFr(o.createdAt)}</span></p>
-                <p className="mt-0.5 truncate text-sm text-muted">
-                  {o.items.map((i) => `${i.brand} ${i.productName} (${i.size}${i.quantity > 1 ? ` ×${i.quantity}` : ""})`).join(" · ")}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-line bg-white p-10 text-center text-muted">Aucune commande ici.</div>
-      )}
+      {/* Toujours affichée (même vide) pour garder le message de confirmation d'une action groupée. */}
+      <OrderList
+          now={now.toISOString()}
+          orders={orders.map((o) => ({
+            id: o.id,
+            number: o.number,
+            status: o.status,
+            firstName: o.firstName,
+            lastName: o.lastName,
+            totalCents: o.totalCents,
+            createdAt: o.createdAt.toISOString(),
+            paidAt: o.paidAt?.toISOString() ?? null,
+            paymentDueAt: o.paymentDueAt?.toISOString() ?? null,
+            summary: o.items.map((i) => `${i.brand} ${i.productName} (${i.size}${i.quantity > 1 ? ` ×${i.quantity}` : ""})`).join(" · "),
+            openRequests: o.openRequests,
+          }))}
+        />
     </div>
   );
 }

@@ -160,7 +160,7 @@ async function OrderView({ params, searchParams }: { params: Promise<{ token: st
             </li>
           ))}
         </ul>
-        <Totals subtotal={order.subtotalCents} shipping={order.shippingCents} />
+        <Totals subtotal={order.subtotalCents} shipping={order.shippingCents} discount={order.discountCents} code={order.promoCode} />
         <div className="border-t border-line pt-3 text-sm text-muted">
           <p className="font-medium text-ink">Livraison</p>
           <p>{order.firstName} {order.lastName}</p>

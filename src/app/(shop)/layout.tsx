@@ -4,14 +4,17 @@ import { Suspense } from "react";
 import { Logo } from "@/components/brand";
 import { BagIcon, TruckIcon, UserIcon } from "@/components/icons";
 import { readCart } from "@/lib/cart";
+import { getSettings } from "@/lib/settings";
 import { SITE } from "@/lib/site";
 
-export default function ShopLayout({ children }: LayoutProps<"/">) {
+export default async function ShopLayout({ children }: LayoutProps<"/">) {
+  const settings = await getSettings();
+  const socials = (["instagram", "tiktok", "snapchat"] as const).filter((k) => settings[k]);
   return (
     <>
       <div className="bg-accent px-4 py-1.5 text-center text-xs font-semibold text-ink">
         <TruckIcon className="mr-1.5 inline size-4 align-[-3px]" />
-        Livraison suivie en {SITE.defaultLeadTime}
+        Livraison suivie en {settings.defaultLeadTime}
         <span className="hidden sm:inline"> · Réservation en 2 minutes</span>
       </div>
       <header className="sticky top-0 z-30 bg-ink text-white">
@@ -43,6 +46,13 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
           <div className="space-y-3">
             <Image src="/brand/fieldline-logo.png" alt="Fieldline" width={150} height={99} />
             <p className="text-white/60">{SITE.tagline}. Produits authentiques uniquement.</p>
+            {socials.length > 0 && (
+              <ul className="flex gap-3 text-white/70">
+                {socials.map((k) => (
+                  <li key={k}><a href={settings[k]} target="_blank" rel="noopener" className="capitalize hover:text-white">{k}</a></li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="space-y-2">
             <p className="font-semibold">Aide</p>

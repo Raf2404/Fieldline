@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { canReserve, sizeAvailability } from "@/lib/catalog";
-import { readCart, writeCart } from "@/lib/cart";
+import { getCartDetails, readCart, readPromoCode, writeCart, writePromoCode } from "@/lib/cart";
+import { checkPromo, normalizeCode } from "@/lib/promo";
 import { OrderError, createOrder, expireUnpaidOrders, notifyOrderCreated } from "@/lib/order-service";
 import { MAX_QTY_PER_LINE, normalizePhone } from "@/lib/orders";
 import { getPublicCatalog } from "@/lib/queries";
@@ -31,6 +32,19 @@ export async function updateCartLine(productId: string, size: string, qty: numbe
       ? lines.filter((l) => !(l.p === productId && l.s === size))
       : lines.map((l) => (l.p === productId && l.s === size ? { ...l, q: Math.min(Math.floor(qty), MAX_QTY_PER_LINE) } : l));
   await writeCart(next);
+}
+
+export async function applyPromo(_prev: unknown, formData: FormData) {
+  const code = normalizeCode(String(formData.get("code") ?? ""));
+  const { subtotal } = await getCartDetails();
+  const r = await checkPromo(code, subtotal);
+  if ("error" in r) return { error: r.error };
+  await writePromoCode(r.promo.code);
+  return { error: null };
+}
+
+export async function removePromo() {
+  await writePromoCode("");
 }
 
 const checkout = z.object({
@@ -69,6 +83,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   try {
     // Libère d'abord les réservations expirées : une paire bloquée depuis 48 h redevient disponible.
     await expireUnpaidOrders();
+    const promo = await readPromoCode();
     const order = await createOrder(await readCart(), {
       firstName: d.firstName,
       lastName: d.lastName,
@@ -79,7 +94,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
       postalCode: d.postalCode,
       city: d.city,
       customerNote: d.customerNote || null,
-    });
+    }, promo || undefined);
     token = order.token;
     // E-mails (client + admin) envoyés après la réponse : la page de confirmation s'affiche sans attendre.
     after(() => notifyOrderCreated(order.id));
@@ -92,6 +107,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     return { error: "Un problème est survenu, réessaie dans un instant." };
   }
   await writeCart([]);
+  await writePromoCode("");
   expireCatalog();
   redirect(`/commande/${token}?nouvelle=1`);
 }

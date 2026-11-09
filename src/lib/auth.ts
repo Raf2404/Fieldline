@@ -31,6 +31,29 @@ export async function createAdminSession(adminId: string) {
   });
 }
 
+const PENDING = "admin_2fa";
+
+/** Mot de passe validé, code de double authentification attendu (5 minutes). */
+export async function createPending2fa(adminId: string) {
+  const token = await new SignJWT({}).setProtectedHeader({ alg: "HS256" }).setSubject(adminId).setAudience("admin-2fa").setExpirationTime("5m").sign(secret());
+  (await cookies()).set(PENDING, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/admin", maxAge: 300 });
+}
+
+export async function readPending2fa() {
+  const token = (await cookies()).get(PENDING)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"], audience: "admin-2fa" });
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPending2fa() {
+  (await cookies()).delete({ name: PENDING, path: "/admin" });
+}
+
 export async function destroyAdminSession() {
   (await cookies()).delete(COOKIE);
 }
@@ -57,6 +80,13 @@ export async function getAdmin(): Promise<Admin | null> {
   } catch {
     return null;
   }
+}
+
+/** Réservé au propriétaire (réglages, équipe, chiffre d'affaires). Un associé est renvoyé au tableau de bord. */
+export async function requireOwner(): Promise<Admin> {
+  const admin = await requireAdmin();
+  if (admin.role !== "owner") redirect("/admin?acces=refuse");
+  return admin;
 }
 
 /** À appeler en tête de chaque page et de chaque action de l'admin. */

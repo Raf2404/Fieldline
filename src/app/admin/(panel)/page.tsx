@@ -1,16 +1,30 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/admin-data";
-import { countOrdersByStatus, getOrderAlerts } from "@/lib/admin-orders";
+import { countOrdersByStatus, getOrderAlerts, getSalesStats } from "@/lib/admin-orders";
+import { formatPrice } from "@/lib/money";
 import { orderRef } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
 
-export default async function AdminHome() {
+export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
   const admin = await requireAdmin();
-  const [s, orders, settings, alerts] = await Promise.all([getDashboardStats(), countOrdersByStatus(), getSettings(), getOrderAlerts()]);
+  const owner = admin.role === "owner";
+  const [s, orders, settings, alerts, sales] = await Promise.all([getDashboardStats(), countOrdersByStatus(), getSettings(), getOrderAlerts(), owner ? getSalesStats() : null]);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Bonjour {admin.name} 👋</h1>
+      {(await searchParams).acces && <p className="rounded-xl bg-sale/10 p-3 text-sm text-sale">Cette page est réservée au propriétaire de la boutique.</p>}
+      {sales && (
+        <section className="grid grid-cols-3 gap-3">
+          {([["Aujourd'hui", sales.revenue.day, sales.revenue.dayN], ["Cette semaine", sales.revenue.week, sales.revenue.weekN], ["Ce mois-ci", sales.revenue.month, sales.revenue.monthN]] as const).map(([l, v, n]) => (
+            <div key={l} className="rounded-2xl bg-ink p-4 text-white">
+              <p className="text-xs text-white/60">{l}</p>
+              <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-bold text-accent sm:text-3xl">{formatPrice(v)}</p>
+              <p className="text-xs text-white/60">{n} commande{n > 1 ? "s" : ""} payée{n > 1 ? "s" : ""}</p>
+            </div>
+          ))}
+        </section>
+      )}
       {!settings.whatsapp && (
         <Link href="/admin/reglages" className="block rounded-2xl bg-warn/10 p-4 text-sm text-warn">
           <b>Numéro WhatsApp non renseigné.</b> Sans lui, les clients ne peuvent pas t&apos;envoyer leur commande pour payer. Ajoute-le dans les réglages →
@@ -62,9 +76,30 @@ export default async function AdminHome() {
           <p className="mt-2 text-sm text-muted">Rien à signaler.</p>
         )}
       </section>
-      <section className="rounded-2xl border border-dashed border-line p-5 text-sm text-muted">
-        Chiffre d&apos;affaires et commandes en retard (plus de 21 jours) arrivent avec la phase 5.
-      </section>
+      {sales && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <section className="rounded-2xl bg-white p-5">
+            <h2 className="font-semibold">Meilleures ventes <span className="text-sm font-normal text-muted">· 90 jours</span></h2>
+            {sales.best.length ? (
+              <ol className="mt-3 space-y-1.5 text-sm">
+                {sales.best.map((b, i) => (
+                  <li key={b.name} className="flex justify-between gap-3"><span>{i + 1}. {b.name}</span><b>{b.qty}</b></li>
+                ))}
+              </ol>
+            ) : <p className="mt-2 text-sm text-muted">Pas encore de vente.</p>}
+          </section>
+          <section className="rounded-2xl bg-white p-5">
+            <h2 className="font-semibold">Pointures les plus demandées</h2>
+            {sales.sizes.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {sales.sizes.map((z) => (
+                  <span key={z.size} className="rounded-xl bg-paper px-3 py-2 text-center text-sm"><b className="block text-base">{z.size}</b>{z.qty} paire{z.qty > 1 ? "s" : ""}</span>
+                ))}
+              </div>
+            ) : <p className="mt-2 text-sm text-muted">Pas encore de vente.</p>}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

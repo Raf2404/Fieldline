@@ -27,8 +27,8 @@ export default function CheckoutPage() {
 }
 
 async function Checkout() {
-  const [{ items, subtotal, hasProblems }, settings, customer] = await Promise.all([getCartDetails(), getSettings(), getCustomer()]);
-  if (!items.length || hasProblems) redirect("/panier");
+  const [{ items, subtotal, hasProblems, promo, discount }, settings, customer] = await Promise.all([getCartDetails(), getSettings(), getCustomer()]);
+  if (!items.length || hasProblems || promo?.error) redirect("/panier");
   const leadTime = [...new Set(items.map((i) => i.product.leadTime))].join(" / ");
   return (
     <CheckoutForm
@@ -60,7 +60,7 @@ async function Checkout() {
               </li>
             ))}
           </ul>
-          <Totals subtotal={subtotal} shipping={settings.shippingCents} />
+          <Totals subtotal={subtotal} shipping={settings.shippingCents} discount={discount} code={promo?.code} />
           <p className="rounded-xl bg-accent/30 p-3 text-sm">
             <b>Livraison estimée : {leadTime}</b> après réception de ton paiement.
           </p>

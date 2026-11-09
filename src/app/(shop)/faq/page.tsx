@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SITE } from "@/lib/site";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -8,10 +8,10 @@ export const metadata: Metadata = {
 };
 
 // Textes à relire et adapter avant la mise en ligne (notamment retours et remboursements, à aligner sur les CGV).
-const QA: { q: string; a: React.ReactNode }[] = [
+const qa = (leadTime: string): { q: string; a: React.ReactNode }[] => [
   {
     q: "Pourquoi la livraison prend 2 à 3 semaines ?",
-    a: `Pour te proposer ces prix, on commande ta paire auprès de nos fournisseurs une fois ta réservation payée. Compte ${SITE.defaultLeadTime} entre ta commande et la livraison. Tu reçois un e-mail à chaque étape : commandée, arrivée chez nous, expédiée avec le numéro de suivi.`,
+    a: `Pour te proposer ces prix, on commande ta paire auprès de nos fournisseurs une fois ta réservation payée. Compte ${leadTime} entre ta commande et la livraison. Tu reçois un e-mail à chaque étape : commandée, arrivée chez nous, expédiée avec le numéro de suivi.`,
   },
   {
     q: "Comment suivre ma commande ?",
@@ -54,7 +54,8 @@ const QA: { q: string; a: React.ReactNode }[] = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const QA = qa((await getSettings()).defaultLeadTime);
   return (
     <div className="mx-auto max-w-2xl px-4 pt-8">
       <h1 className="text-3xl font-extrabold uppercase tracking-tight">Questions fréquentes</h1>

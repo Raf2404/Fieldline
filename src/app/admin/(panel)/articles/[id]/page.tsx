@@ -8,7 +8,7 @@ import { ProductForm } from "@/components/admin/product-form";
 export const metadata: Metadata = { title: "Modifier l'article" };
 
 export default async function EditProductPage({ params, searchParams }: PageProps<"/admin/articles/[id]">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [p, brands] = await Promise.all([getProductForEdit(id), listBrands()]);
@@ -18,8 +18,9 @@ export default async function EditProductPage({ params, searchParams }: PageProp
     <ProductForm
       key={p.id}
       notice={notice}
+      showCost={admin.role === "owner"}
       brands={brands}
-      product={{ ...p, images: p.images.map((key) => ({ key, url: imageUrl(key, "sm") })) }}
+      product={{ ...p, costCents: admin.role === "owner" ? p.costCents : null, images: p.images.map((key) => ({ key, url: imageUrl(key, "sm") })) }}
     />
   );
 }
