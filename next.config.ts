@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
@@ -11,6 +10,11 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  serverExternalPackages: ["sharp"],
+  experimental: {
+    // Les photos sont réduites dans le navigateur avant l'envoi ; cette marge couvre les cas restants.
+    serverActions: { bodySizeLimit: "10mb" },
   },
 };
 
