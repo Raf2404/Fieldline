@@ -81,7 +81,7 @@ async function Product({ params }: { params: Promise<{ slug: string }> }) {
         <div className="space-y-6">
           <div className="space-y-2">
             <p className="text-sm font-semibold uppercase tracking-wide text-muted">{p.brand}{p.model ? ` · ${p.model}` : ""}</p>
-            <h1 className="text-3xl font-black uppercase leading-none tracking-tight">{p.name}</h1>
+            <h1 className="text-3xl font-extrabold uppercase leading-none tracking-tight">{p.name}</h1>
             <Price price={p.priceCents} compareAt={p.compareAtCents} size="lg" />
             {p.compareAtCents && p.compareAtCents > p.priceCents && (
               <p className="text-xs text-muted">Prix barré : prix de vente conseillé constaté en magasin.</p>

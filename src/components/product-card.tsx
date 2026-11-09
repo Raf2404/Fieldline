@@ -31,7 +31,7 @@ export function Price({ price, compareAt, size = "sm" }: { price: number; compar
           <span className={`text-muted line-through ${size === "lg" ? "text-base" : "text-sm"}`}>
             {formatPrice(compareAt!)}
           </span>
-          <span className={`font-semibold text-sale ${size === "lg" ? "text-base" : "text-sm"}`}>-{off} %</span>
+          <span className={`rounded-full bg-orange px-1.5 font-bold text-ink ${size === "lg" ? "text-sm" : "text-xs"}`}>-{off} %</span>
         </>
       )}
     </div>
@@ -60,7 +60,7 @@ export function ProductCard({ p, priority }: { p: PublicProduct; priority?: bool
         )}
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
           {p.tags.map((t) => (
-            <span key={t} className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-semibold text-white">
+            <span key={t} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${t === "promo" ? "bg-orange text-ink" : t === "nouveaute" ? "bg-accent text-ink" : "bg-ink text-white"}`}>
               {tagLabel(t)}
             </span>
           ))}

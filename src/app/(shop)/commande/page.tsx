@@ -14,7 +14,7 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 pt-8">
       <Link href="/panier" className="text-sm text-muted hover:text-ink">← Panier</Link>
-      <h1 className="mt-1 text-3xl font-black uppercase tracking-tight">Commande</h1>
+      <h1 className="mt-1 text-3xl font-extrabold uppercase tracking-tight">Commande</h1>
       <div className="mt-6">
         <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-black/5" />}>
           <Checkout />

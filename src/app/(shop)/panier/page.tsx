@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Panier", robots: { index: false } };
 export default function CartPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-8">
-      <h1 className="text-3xl font-black uppercase tracking-tight">Panier</h1>
+      <h1 className="text-3xl font-extrabold uppercase tracking-tight">Panier</h1>
       <Suspense fallback={<div className="mt-6 h-48 animate-pulse rounded-2xl bg-black/5" />}>
         <Cart />
       </Suspense>

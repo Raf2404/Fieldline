@@ -1,13 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #111110;
-  --paper: #fafaf7;
+  /* Couleurs du logo Fieldline */
+  --ink: #202a33;
+  --brand: #06afea;
+  --accent: #a1ff2a;
+  --orange: #ff6b21;
+  --paper: #f6f7f8;
   --card: #ffffff;
-  --muted: #6b6b66;
-  --line: #e6e6e0;
-  --accent: #d4ff3a;
-  --sale: #d93a26;
+  --muted: #66707a;
+  --line: #e2e5e9;
+  --sale: #d9480f;
   --ok: #1f8a4c;
   --warn: #b26a00;
 }
@@ -19,15 +22,39 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-brand: var(--brand);
+  --color-orange: var(--orange);
   --color-sale: var(--sale);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-saira), var(--font-geist-sans), ui-sans-serif, sans-serif;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
+}
+
+/* Titres dans la police du logo */
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+/* Rayures inspirées du logo (bleu, blanc, orange, vert) */
+@utility stripes {
+  background-image: repeating-linear-gradient(
+    -60deg,
+    transparent 0 14px,
+    var(--brand) 14px 20px,
+    transparent 20px 34px,
+    #ffffff 34px 40px,
+    transparent 40px 54px,
+    var(--orange) 54px 60px,
+    transparent 60px 74px,
+    var(--accent) 74px 80px
+  );
 }
 
 /* Classes réutilisables (Tailwind v4 : @utility) */

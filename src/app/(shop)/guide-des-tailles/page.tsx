@@ -36,7 +36,7 @@ const GRIDS: { brand: string; rows: [string, string, string, string][] }[] = [
 export default function SizeGuidePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-8">
-      <h1 className="text-3xl font-black uppercase tracking-tight">Guide des tailles</h1>
+      <h1 className="text-3xl font-extrabold uppercase tracking-tight">Guide des tailles</h1>
       <div className="mt-4 space-y-2 rounded-2xl bg-white p-5 text-[15px] leading-relaxed">
         <p className="font-semibold">Mesure ton pied en 1 minute</p>
         <ol className="list-decimal space-y-1 pl-5 text-muted">

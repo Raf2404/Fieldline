@@ -44,7 +44,7 @@ async function Confirmation({ params }: { params: Promise<{ token: string }> }) 
         <p className="text-sm font-semibold uppercase tracking-widest text-accent">
           {pending ? "Commande réservée" : ORDER_STATUS[order.status].label}
         </p>
-        <h1 className="mt-2 text-3xl font-black uppercase leading-none">Commande {ref}</h1>
+        <h1 className="mt-2 text-3xl font-extrabold uppercase leading-none">Commande {ref}</h1>
         {pending && order.paymentDueAt && (
           <p className="mt-3 text-white/75">
             Ta paire est réservée jusqu&apos;au <b className="text-white">{dateFr(order.paymentDueAt)}</b>. Sans paiement d&apos;ici là,

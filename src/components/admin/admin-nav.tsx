@@ -19,11 +19,11 @@ export function AdminNav() {
       <nav className="hidden gap-1 text-sm md:flex">
         {LINKS.map((l) =>
           l.soon ? (
-            <span key={l.href} className="rounded-full px-3 py-1.5 text-muted/60" title="Arrive à l'étape 3">
+            <span key={l.href} className="rounded-full px-3 py-1.5 text-white/30">
               {l.label}
             </span>
           ) : (
-            <Link key={l.href} href={l.href} className={`rounded-full px-3 py-1.5 ${active(l.href) ? "bg-ink text-white" : "hover:bg-black/5"}`}>
+            <Link key={l.href} href={l.href} className={`rounded-full px-3 py-1.5 ${active(l.href) ? "bg-white text-ink" : "text-white/80 hover:bg-white/10"}`}>
               {l.label}
             </Link>
           ),

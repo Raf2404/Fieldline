@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function CataloguePage({ searchParams }: PageProps<"/catalogue">) {
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8">
-      <h1 className="text-3xl font-black uppercase tracking-tight">Catalogue</h1>
+      <h1 className="text-3xl font-extrabold uppercase tracking-tight">Catalogue</h1>
       <Suspense fallback={<GridSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>

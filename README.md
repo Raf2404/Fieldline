@@ -1,5 +1,7 @@
 # Fieldline — boutique de crampons
 
+![Fieldline](public/brand/fieldline-logo.png)
+
 Site de vente de crampons de football à prix réduit : catalogue mobile, réservation en ligne avec paiement
 via WhatsApp, suivi de commande et espace de gestion utilisable sans toucher au code.
 Le cahier des charges est la référence fonctionnelle, sauf pour le paiement (voir ci-dessous).

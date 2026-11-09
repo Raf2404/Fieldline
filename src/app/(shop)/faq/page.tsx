@@ -57,7 +57,7 @@ const QA: { q: string; a: React.ReactNode }[] = [
 export default function FaqPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 pt-8">
-      <h1 className="text-3xl font-black uppercase tracking-tight">Questions fréquentes</h1>
+      <h1 className="text-3xl font-extrabold uppercase tracking-tight">Questions fréquentes</h1>
       <div className="mt-6 divide-y divide-line rounded-2xl border border-line bg-white">
         {QA.map(({ q, a }) => (
           <details key={q} className="group p-5">

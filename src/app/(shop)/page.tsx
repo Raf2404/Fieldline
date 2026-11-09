@@ -9,10 +9,11 @@ import { SITE } from "@/lib/site";
 export default function HomePage() {
   return (
     <>
-      <section className="bg-ink text-white">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
+      <section className="relative overflow-hidden bg-ink text-white">
+        <div className="stripes pointer-events-none absolute -right-24 top-0 h-full w-2/3 opacity-25 [mask-image:linear-gradient(to_left,black,transparent)] sm:opacity-40" />
+        <div className="relative mx-auto max-w-6xl px-4 py-14 sm:py-20">
           <p className="text-sm font-semibold uppercase tracking-widest text-accent">Jusqu&apos;à -50 % sur les crampons pro</p>
-          <h1 className="mt-3 max-w-xl text-4xl font-black uppercase leading-[0.95] tracking-tight sm:text-6xl">
+          <h1 className="mt-3 max-w-xl text-4xl font-extrabold uppercase leading-[0.95] tracking-tight sm:text-6xl">
             Les crampons des pros, sans le prix des pros.
           </h1>
           <p className="mt-4 max-w-md text-white/70">
@@ -22,7 +23,7 @@ export default function HomePage() {
             <Link href="/catalogue" className="btn bg-accent text-ink hover:bg-accent/85">
               Voir le catalogue
             </Link>
-            <Link href="/faq" className="btn border border-white/25 text-white hover:border-white">
+            <Link href="/faq" className="btn border border-white/25 text-white hover:border-brand hover:text-brand">
               Comment ça marche ?
             </Link>
           </div>
@@ -42,7 +43,7 @@ export default function HomePage() {
       </Suspense>
 
       <section className="mx-auto max-w-6xl px-4 pt-16">
-        <h2 className="text-2xl font-black uppercase tracking-tight">Comment ça marche</h2>
+        <h2 className="text-2xl font-extrabold uppercase tracking-tight">Comment ça marche</h2>
         <ol className="mt-5 grid gap-3 sm:grid-cols-3">
           {[
             ["Tu réserves", "Choisis ton modèle et ta pointure, valide ta commande puis envoie-nous ton numéro de commande sur WhatsApp pour régler."],
@@ -50,7 +51,7 @@ export default function HomePage() {
             ["Tu la reçois", `Livraison suivie en ${SITE.defaultLeadTime}, avec ton numéro de suivi transporteur.`],
           ].map(([t, d], i) => (
             <li key={t} className="rounded-2xl border border-line bg-white p-5">
-              <span className="grid size-8 place-items-center rounded-full bg-accent text-sm font-black">{i + 1}</span>
+              <span className="grid size-8 place-items-center rounded-full bg-brand text-sm font-black text-white">{i + 1}</span>
               <p className="mt-3 font-bold">{t}</p>
               <p className="mt-1 text-sm text-muted">{d}</p>
             </li>
@@ -78,7 +79,7 @@ async function HomeProducts() {
       {newest.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-12">
           <div className="mb-5 flex items-end justify-between">
-            <h2 className="text-2xl font-black uppercase tracking-tight">Nouveautés</h2>
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight">Nouveautés</h2>
             <Link href="/catalogue?tri=nouveaute" className="text-sm font-semibold underline underline-offset-4">Tout voir</Link>
           </div>
           <ProductGrid products={newest} priorityCount={2} />
@@ -88,7 +89,7 @@ async function HomeProducts() {
       {best.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-14">
           <div className="mb-5 flex items-end justify-between">
-            <h2 className="text-2xl font-black uppercase tracking-tight">Meilleures ventes</h2>
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight">Meilleures ventes</h2>
             <Link href="/catalogue" className="text-sm font-semibold underline underline-offset-4">Tout voir</Link>
           </div>
           <ProductGrid products={best} />
